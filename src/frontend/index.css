@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* VibeGram Design System — OKLCH Tokens */
+/* Fonts: Sora (display) + Plus Jakarta Sans (body) */
+
+@font-face {
+  font-family: "Sora";
+  src: url("/assets/fonts/Sora.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 1rem;
+
+    /* VibeGram Palette: Deep charcoal bg with vivid purple-pink-blue accents */
+    --background: 0.12 0.005 260;
+    --foreground: 0.96 0.005 260;
+    --card: 0.17 0.008 260;
+    --card-foreground: 0.96 0.005 260;
+    --popover: 0.18 0.01 260;
+    --popover-foreground: 0.96 0.005 260;
+
+    /* Primary: vibrant purple */
+    --primary: 0.62 0.22 295;
+    --primary-foreground: 0.98 0 0;
+
+    /* Secondary: deep violet card */
+    --secondary: 0.22 0.015 280;
+    --secondary-foreground: 0.9 0.01 280;
+
+    /* Muted */
+    --muted: 0.22 0.01 270;
+    --muted-foreground: 0.58 0.01 270;
+
+    /* Accent: hot pink */
+    --accent: 0.65 0.25 350;
+    --accent-foreground: 0.98 0 0;
+
+    /* Destructive */
+    --destructive: 0.6 0.24 25;
+    --destructive-foreground: 0.98 0 0;
+
+    /* Borders / inputs */
+    --border: 0.28 0.015 270;
+    --input: 0.28 0.015 270;
+    --ring: 0.62 0.22 295;
+
+    /* Charts */
+    --chart-1: 0.62 0.22 295;
+    --chart-2: 0.65 0.25 350;
+    --chart-3: 0.6 0.2 225;
+    --chart-4: 0.7 0.18 200;
+    --chart-5: 0.75 0.15 170;
+
+    /* Sidebar */
+    --sidebar: 0.14 0.008 260;
+    --sidebar-foreground: 0.96 0.005 260;
+    --sidebar-primary: 0.62 0.22 295;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.22 0.015 280;
+    --sidebar-accent-foreground: 0.9 0.01 280;
+    --sidebar-border: 0.28 0.015 270;
+    --sidebar-ring: 0.62 0.22 295;
+
+    /* Custom VibeGram tokens */
+    --vibe-purple: 0.62 0.22 295;
+    --vibe-pink: 0.65 0.25 350;
+    --vibe-blue: 0.6 0.2 225;
+    --vibe-gradient: linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350), oklch(0.6 0.2 225));
+    --vibe-gradient-text: linear-gradient(90deg, oklch(0.75 0.22 295), oklch(0.75 0.25 350), oklch(0.7 0.2 225));
+    --nav-height: 64px;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* Gradient text utility */
+  .gradient-text {
+    background: var(--vibe-gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gradient background */
+  .gradient-bg {
+    background: var(--vibe-gradient);
+  }
+
+  /* Gradient border ring for avatars (stories ring) */
+  .avatar-ring {
+    position: relative;
+  }
+
+  .avatar-ring::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: var(--vibe-gradient);
+    z-index: -1;
+  }
+
+  /* Glassmorphism card */
+  .glass-card {
+    background: oklch(var(--card) / 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(var(--border) / 0.6);
+  }
+
+  /* Bottom nav safe area */
+  .pb-safe {
+    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Custom scrollbar */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  /* Pulse animation for like */
+  @keyframes heartbeat {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.3); }
+    50% { transform: scale(1.1); }
+    75% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-heartbeat {
+    animation: heartbeat 0.4s ease-in-out;
+  }
+
+  /* Gradient button */
+  .btn-gradient {
+    background: var(--vibe-gradient);
+    color: white;
+    border: none;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-gradient:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-gradient:active {
+    transform: translateY(0px);
+  }
+}
