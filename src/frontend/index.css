@@ -23,10 +23,10 @@
   :root {
     --radius: 1rem;
 
-    /* VibeGram Palette: Deep charcoal bg with vivid purple-pink-blue accents */
-    --background: 0.12 0.005 260;
+    /* VibeGram Palette: Deep dark navy-indigo bg with vivid purple-pink accents */
+    --background: 0.1 0.018 265;
     --foreground: 0.96 0.005 260;
-    --card: 0.17 0.008 260;
+    --card: 0.15 0.012 265;
     --card-foreground: 0.96 0.005 260;
     --popover: 0.18 0.01 260;
     --popover-foreground: 0.96 0.005 260;
@@ -52,9 +52,9 @@
     --destructive-foreground: 0.98 0 0;
 
     /* Borders / inputs */
-    --border: 0.28 0.015 270;
-    --input: 0.28 0.015 270;
-    --ring: 0.62 0.22 295;
+    --border: 0.25 0.02 280;
+    --input: 0.25 0.02 280;
+    --ring: 0.62 0.28 340;
 
     /* Charts */
     --chart-1: 0.62 0.22 295;
@@ -193,5 +193,75 @@
 
   .btn-gradient:active {
     transform: translateY(0px);
+  }
+
+  /* Hot-pink auth button */
+  .btn-hotpink {
+    background: oklch(0.62 0.28 340);
+    color: white;
+    border: none;
+    transition: background 0.2s, opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+
+  .btn-hotpink:hover:not(:disabled) {
+    background: oklch(0.66 0.28 340);
+    box-shadow: 0 0 24px oklch(0.62 0.28 340 / 0.45);
+    transform: translateY(-1px);
+  }
+
+  .btn-hotpink:active:not(:disabled) {
+    transform: translateY(0px);
+    box-shadow: none;
+  }
+
+  .btn-hotpink:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Neon glow effects */
+  .neon-pink-glow {
+    box-shadow: 0 0 12px oklch(0.62 0.28 340 / 0.7), 0 0 24px oklch(0.62 0.28 340 / 0.35);
+  }
+
+  .neon-purple-glow {
+    box-shadow: 0 0 12px oklch(0.62 0.22 295 / 0.7), 0 0 24px oklch(0.62 0.22 295 / 0.35);
+  }
+
+  .neon-blue-glow {
+    box-shadow: 0 0 12px oklch(0.6 0.2 225 / 0.7), 0 0 24px oklch(0.6 0.2 225 / 0.35);
+  }
+
+  .neon-border-pink {
+    border: 1px solid oklch(0.62 0.28 340 / 0.6);
+    box-shadow: inset 0 0 8px oklch(0.62 0.28 340 / 0.15), 0 0 8px oklch(0.62 0.28 340 / 0.3);
+  }
+
+  @keyframes heart-burst {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.4); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+  }
+
+  .animate-heart-burst {
+    animation: heart-burst 0.6s ease-out forwards;
+  }
+
+  @keyframes swipe-hint {
+    0%, 100% { transform: translateY(0); opacity: 0.6; }
+    50% { transform: translateY(-12px); opacity: 1; }
+  }
+
+  .animate-swipe-hint {
+    animation: swipe-hint 1.5s ease-in-out infinite;
+  }
+
+  @keyframes spin-disc {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin-disc {
+    animation: spin-disc 3s linear infinite;
   }
 }

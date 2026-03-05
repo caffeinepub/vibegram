@@ -55,16 +55,26 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative"
+      style={{ background: "oklch(0.1 0.018 265)" }}
+    >
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Top-right: hot-pink/magenta glow */}
         <div
-          className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: "oklch(0.62 0.22 295)" }}
+          className="absolute -top-32 -right-32 w-80 h-80 rounded-full opacity-25 blur-3xl"
+          style={{ background: "oklch(0.62 0.28 340)" }}
         />
+        {/* Bottom-left: indigo/purple glow */}
         <div
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: "oklch(0.65 0.25 350)" }}
+          className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full opacity-20 blur-3xl"
+          style={{ background: "oklch(0.55 0.22 295)" }}
+        />
+        {/* Center subtle: deep blue tint */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10 blur-3xl"
+          style={{ background: "oklch(0.45 0.15 265)" }}
         />
       </div>
 
@@ -106,7 +116,15 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-glass">
+              <div
+                className="rounded-2xl p-6 shadow-glass"
+                style={{
+                  background: "oklch(0.15 0.01 260 / 0.85)",
+                  border: "1px solid oklch(0.25 0.02 280)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                }}
+              >
                 <h2 className="text-xl font-bold font-display mb-1">
                   Set up your profile
                 </h2>
@@ -160,7 +178,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                   <Button
                     type="submit"
                     data-ocid="auth.signup.button"
-                    className="w-full btn-gradient border-0 font-semibold h-11"
+                    className="w-full btn-hotpink border-0 font-semibold h-11"
                     disabled={isSubmitting || !username || !displayName}
                   >
                     {isSubmitting ? (
@@ -180,28 +198,51 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-glass">
+              <div
+                className="rounded-2xl p-6 shadow-glass"
+                style={{
+                  background: "oklch(0.15 0.01 260 / 0.85)",
+                  border: "1px solid oklch(0.25 0.02 280)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                }}
+              >
                 {/* Mode toggle */}
-                <div className="flex bg-secondary rounded-xl p-1 mb-6">
+                <div
+                  className="flex rounded-xl p-1 mb-6"
+                  style={{ background: "oklch(0.2 0.015 270)" }}
+                >
                   <button
                     type="button"
+                    data-ocid="auth.login.tab"
                     onClick={() => setMode("login")}
                     className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
                       mode === "login"
-                        ? "bg-card text-foreground shadow-xs"
+                        ? "text-white shadow-xs"
                         : "text-muted-foreground"
                     }`}
+                    style={
+                      mode === "login"
+                        ? { background: "oklch(0.62 0.28 340)" }
+                        : {}
+                    }
                   >
                     Log In
                   </button>
                   <button
                     type="button"
+                    data-ocid="auth.signup.tab"
                     onClick={() => setMode("signup")}
                     className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
                       mode === "signup"
-                        ? "bg-card text-foreground shadow-xs"
+                        ? "text-white shadow-xs"
                         : "text-muted-foreground"
                     }`}
+                    style={
+                      mode === "signup"
+                        ? { background: "oklch(0.62 0.28 340)" }
+                        : {}
+                    }
                   >
                     Sign Up
                   </button>
@@ -223,7 +264,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                       <Button
                         data-ocid="auth.login.button"
                         onClick={handleLogin}
-                        className="w-full btn-gradient border-0 font-semibold h-11 text-base"
+                        className="w-full btn-hotpink border-0 font-semibold h-11 text-base"
                         disabled={isLoggingIn}
                       >
                         {isLoggingIn ? (
@@ -247,7 +288,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                       <Button
                         data-ocid="auth.signup.button"
                         onClick={handleLogin}
-                        className="w-full btn-gradient border-0 font-semibold h-11 text-base"
+                        className="w-full btn-hotpink border-0 font-semibold h-11 text-base"
                         disabled={isLoggingIn}
                       >
                         {isLoggingIn ? (

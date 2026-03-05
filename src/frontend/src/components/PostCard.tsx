@@ -271,14 +271,21 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
             )}
             aria-label={isLiked ? "Unlike post" : "Like post"}
           >
-            <Heart
-              size={22}
+            <div
               className={cn(
-                "transition-all",
-                isLiked ? "fill-current" : "",
-                heartAnimation ? "animate-heartbeat" : "",
+                "rounded-full p-1 -m-1 transition-all duration-200",
+                isLiked ? "neon-pink-glow" : "",
               )}
-            />
+            >
+              <Heart
+                size={22}
+                className={cn(
+                  "transition-all",
+                  isLiked ? "fill-current" : "",
+                  heartAnimation ? "animate-heartbeat" : "",
+                )}
+              />
+            </div>
             <span className="text-sm font-semibold">
               {formatCount(likes.length)}
             </span>
