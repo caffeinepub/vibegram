@@ -1,10 +1,15 @@
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Share2, UserPlus, Users, X } from "lucide-react";
+import { Share2, Smile, UserPlus, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +31,28 @@ const MOCK_COMMENTS = [
 
 const REACTION_EMOJIS = ["❤️", "🔥", "😮", "👏", "💜"];
 
+const LIVE_FILTERS = [
+  { name: "Normal", style: "" },
+  { name: "Warm", style: "sepia(0.3) saturate(1.4) brightness(1.05)" },
+  { name: "Vivid", style: "saturate(1.8) contrast(1.1)" },
+  { name: "Noir", style: "grayscale(1) contrast(1.2)" },
+] as const;
+
+const LIVE_STICKERS = [
+  "🎉",
+  "🔥",
+  "❤️",
+  "😍",
+  "✨",
+  "🌈",
+  "💜",
+  "🤩",
+  "🎶",
+  "⚡",
+  "🌟",
+  "💥",
+];
+
 interface FloatingReaction {
   id: number;
   emoji: string;
@@ -41,6 +68,7 @@ export function LiveStreamSheet({ open, onOpenChange }: LiveStreamSheetProps) {
     FloatingReaction[]
   >([]);
   const [isEnding, setIsEnding] = useState(false);
+  const [liveFilter, setLiveFilter] = useState("");
   const reactionIdRef = useRef(0);
   const commentIndexRef = useRef(0);
   const finalViewerCount = useRef(0);
@@ -189,6 +217,7 @@ export function LiveStreamSheet({ open, onOpenChange }: LiveStreamSheetProps) {
             style={{
               background:
                 "linear-gradient(180deg, oklch(0.18 0.022 295), oklch(0.14 0.015 270))",
+              filter: liveFilter || undefined,
             }}
           >
             {/* Pulsing ring */}
@@ -270,8 +299,73 @@ export function LiveStreamSheet({ open, onOpenChange }: LiveStreamSheetProps) {
           </AnimatePresence>
         </div>
 
+        {/* Live Filter + Sticker row */}
+        <div className="relative z-10 px-5 mt-3">
+          <div className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-xl px-3 py-2">
+            {/* Filter chips */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none flex-1">
+              {LIVE_FILTERS.map((f) => (
+                <button
+                  key={f.name}
+                  type="button"
+                  onClick={() => setLiveFilter(f.style)}
+                  data-ocid={`live.filter.${f.name.toLowerCase()}.toggle`}
+                  className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+                  style={
+                    liveFilter === f.style
+                      ? {
+                          background:
+                            "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                          color: "white",
+                        }
+                      : {
+                          background: "rgba(255,255,255,0.1)",
+                          color: "rgba(255,255,255,0.7)",
+                        }
+                  }
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Sticker popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  data-ocid="live.sticker.open_modal_button"
+                  className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors"
+                  aria-label="Open stickers"
+                >
+                  <Smile size={16} className="text-white" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="top"
+                className="w-52 p-2 border-border"
+                style={{ background: "oklch(0.14 0.012 265)" }}
+              >
+                <div className="grid grid-cols-6 gap-1">
+                  {LIVE_STICKERS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => handleReaction(emoji)}
+                      data-ocid="live.sticker.button"
+                      className="w-full aspect-square rounded-lg flex items-center justify-center text-xl hover:bg-secondary/60 active:scale-90 transition-all"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
         {/* Emoji reaction bar */}
-        <div className="relative z-10 px-5 mt-4">
+        <div className="relative z-10 px-5 mt-2">
           <div className="flex items-center justify-between bg-black/20 backdrop-blur-sm rounded-2xl px-4 py-3">
             {REACTION_EMOJIS.map((emoji) => (
               <button

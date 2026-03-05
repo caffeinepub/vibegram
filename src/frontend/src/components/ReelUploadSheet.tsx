@@ -7,12 +7,21 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Clapperboard, Loader2, Video, X } from "lucide-react";
+import {
+  CheckCircle2,
+  Clapperboard,
+  Loader2,
+  Music2,
+  Video,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalBlob, MediaType } from "../backend";
 import { useCreatePost } from "../hooks/useQueries";
+import { CreativeToolbar } from "./CreativeToolbar";
+import { MediaOverlayCanvas, type Overlay } from "./MediaOverlayCanvas";
 
 interface ReelUploadSheetProps {
   open: boolean;
@@ -25,6 +34,12 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
   const [caption, setCaption] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
+  const [filterStyle, setFilterStyle] = useState("");
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [selectedSong, setSelectedSong] = useState<{
+    title: string;
+    artist: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
@@ -60,6 +75,9 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
     setCaption("");
     setUploadProgress(0);
     setUploadDone(false);
+    setFilterStyle("");
+    setOverlays([]);
+    setSelectedSong(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -177,15 +195,24 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
                 className="space-y-4"
               >
                 {/* Preview */}
-                <div className="relative rounded-2xl overflow-hidden bg-secondary aspect-[9/16] max-h-[55dvh] mx-auto w-full">
-                  {/* biome-ignore lint/a11y/useMediaCaption: user-generated content preview */}
-                  <video
-                    src={preview!}
-                    className="w-full h-full object-cover"
-                    controls
-                    playsInline
-                  />
-                  <div className="absolute top-3 left-3">
+                <div className="relative rounded-2xl overflow-hidden bg-secondary aspect-[9/16] max-h-[50dvh] mx-auto w-full">
+                  <MediaOverlayCanvas
+                    overlays={overlays}
+                    onRemoveOverlay={(id) =>
+                      setOverlays((prev) => prev.filter((o) => o.id !== id))
+                    }
+                    filterStyle={filterStyle}
+                    className="w-full h-full"
+                  >
+                    {/* biome-ignore lint/a11y/useMediaCaption: user-generated content preview */}
+                    <video
+                      src={preview!}
+                      className="w-full h-full object-cover"
+                      controls
+                      playsInline
+                    />
+                  </MediaOverlayCanvas>
+                  <div className="absolute top-3 left-3 pointer-events-none">
                     <span
                       className="text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 backdrop-blur-sm"
                       style={{ background: "oklch(0.6 0.2 225 / 0.8)" }}
@@ -202,6 +229,67 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
                     <X size={14} />
                   </button>
                 </div>
+
+                {/* Creative Toolbar */}
+                <CreativeToolbar
+                  onFilterSelect={setFilterStyle}
+                  onStickerAdd={(emoji) =>
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `sticker-${Date.now()}-${Math.random()}`,
+                        type: "sticker",
+                        content: emoji,
+                        x: 40,
+                        y: 40,
+                      },
+                    ])
+                  }
+                  onTextAdd={(overlay) =>
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `text-${Date.now()}-${Math.random()}`,
+                        type: "text",
+                        content: overlay.text,
+                        style: overlay.style,
+                        color: overlay.color,
+                        x: 40,
+                        y: 40,
+                      },
+                    ])
+                  }
+                  onMusicSelect={setSelectedSong}
+                  selectedFilter={filterStyle}
+                  selectedSong={selectedSong}
+                />
+
+                {/* Music bar */}
+                {selectedSong && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-primary/40"
+                    style={{ background: "oklch(0.6 0.2 225 / 0.12)" }}
+                  >
+                    <Music2
+                      size={15}
+                      style={{ color: "oklch(0.75 0.2 225)" }}
+                      className="shrink-0"
+                    />
+                    <span className="flex-1 text-xs font-medium text-foreground truncate">
+                      {selectedSong.title} — {selectedSong.artist}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSong(null)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Remove song"
+                    >
+                      <X size={14} />
+                    </button>
+                  </motion.div>
+                )}
 
                 {/* Caption */}
                 <Textarea

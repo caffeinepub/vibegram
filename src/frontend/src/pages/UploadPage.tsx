@@ -2,11 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, ImagePlus, Loader2, Video, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ImagePlus,
+  Loader2,
+  Music2,
+  Video,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalBlob, MediaType } from "../backend";
+import { CreativeToolbar } from "../components/CreativeToolbar";
+import {
+  MediaOverlayCanvas,
+  type Overlay,
+} from "../components/MediaOverlayCanvas";
 import { useCreatePost } from "../hooks/useQueries";
 
 interface UploadPageProps {
@@ -20,6 +32,12 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
+  const [filterStyle, setFilterStyle] = useState("");
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [selectedSong, setSelectedSong] = useState<{
+    title: string;
+    artist: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
@@ -65,6 +83,9 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
     setCaption("");
     setUploadProgress(0);
     setUploadDone(false);
+    setFilterStyle("");
+    setOverlays([]);
+    setSelectedSong(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -189,24 +210,33 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
             >
               {/* Media preview */}
               <div className="relative rounded-2xl overflow-hidden bg-secondary aspect-square">
-                {isVideo ? (
-                  // biome-ignore lint/a11y/useMediaCaption: user-generated content preview
-                  <video
-                    src={preview!}
-                    className="w-full h-full object-cover"
-                    controls
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={preview!}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                )}
+                <MediaOverlayCanvas
+                  overlays={overlays}
+                  onRemoveOverlay={(id) =>
+                    setOverlays((prev) => prev.filter((o) => o.id !== id))
+                  }
+                  filterStyle={filterStyle}
+                  className="w-full h-full"
+                >
+                  {isVideo ? (
+                    // biome-ignore lint/a11y/useMediaCaption: user-generated content preview
+                    <video
+                      src={preview!}
+                      className="w-full h-full object-cover"
+                      controls
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={preview!}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </MediaOverlayCanvas>
 
                 {/* Media type badge */}
-                <div className="absolute top-3 left-3">
+                <div className="absolute top-3 left-3 pointer-events-none">
                   <span className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 backdrop-blur-sm">
                     {isVideo ? (
                       <>
@@ -220,6 +250,67 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
                   </span>
                 </div>
               </div>
+
+              {/* Creative Toolbar */}
+              <CreativeToolbar
+                onFilterSelect={setFilterStyle}
+                onStickerAdd={(emoji) =>
+                  setOverlays((prev) => [
+                    ...prev,
+                    {
+                      id: `sticker-${Date.now()}-${Math.random()}`,
+                      type: "sticker",
+                      content: emoji,
+                      x: 40,
+                      y: 40,
+                    },
+                  ])
+                }
+                onTextAdd={(overlay) =>
+                  setOverlays((prev) => [
+                    ...prev,
+                    {
+                      id: `text-${Date.now()}-${Math.random()}`,
+                      type: "text",
+                      content: overlay.text,
+                      style: overlay.style,
+                      color: overlay.color,
+                      x: 40,
+                      y: 40,
+                    },
+                  ])
+                }
+                onMusicSelect={setSelectedSong}
+                selectedFilter={filterStyle}
+                selectedSong={selectedSong}
+              />
+
+              {/* Music bar */}
+              {selectedSong && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-primary/40"
+                  style={{ background: "oklch(0.62 0.22 295 / 0.1)" }}
+                >
+                  <Music2
+                    size={15}
+                    style={{ color: "oklch(0.75 0.22 295)" }}
+                    className="shrink-0"
+                  />
+                  <span className="flex-1 text-xs font-medium text-foreground truncate">
+                    {selectedSong.title} — {selectedSong.artist}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSong(null)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Remove song"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
 
               {/* Caption */}
               <div>

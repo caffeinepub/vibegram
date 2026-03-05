@@ -4,12 +4,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Principal } from "@dfinity/principal";
-import { ArrowLeft, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, MessageSquare, Phone, Send, Video } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { Message, UserId } from "../backend.d";
+import { AudioCallSheet } from "../components/AudioCallSheet";
 import { AvatarWithRing } from "../components/AvatarWithRing";
+import { VideoCallSheet } from "../components/VideoCallSheet";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useConversation,
@@ -95,6 +97,8 @@ function ChatView({
   const { data: messages = [], isLoading } = useConversation(userId);
   const sendMessage = useSendMessage();
   const [text, setText] = useState("");
+  const [audioCallOpen, setAudioCallOpen] = useState(false);
+  const [videoCallOpen, setVideoCallOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const currentPrincipal = identity?.getPrincipal().toString();
@@ -113,6 +117,18 @@ function ChatView({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Audio + Video call sheets */}
+      <AudioCallSheet
+        open={audioCallOpen}
+        onOpenChange={setAudioCallOpen}
+        userId={userId}
+      />
+      <VideoCallSheet
+        open={videoCallOpen}
+        onOpenChange={setVideoCallOpen}
+        userId={userId}
+      />
+
       {/* Chat header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b border-border"
@@ -130,13 +146,35 @@ function ChatView({
           <ArrowLeft size={20} />
         </button>
         <AvatarWithRing profile={profile} size="sm" showRing />
-        <div>
-          <p className="text-sm font-semibold font-display">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold font-display truncate">
             {profile?.displayName || "..."}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground truncate">
             @{profile?.username || "..."}
           </p>
+        </div>
+
+        {/* Call buttons */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setAudioCallOpen(true)}
+            data-ocid="chat.audio_call.button"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            aria-label="Audio call"
+          >
+            <Phone size={17} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setVideoCallOpen(true)}
+            data-ocid="chat.video_call.button"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            aria-label="Video call"
+          >
+            <Video size={17} />
+          </button>
         </div>
       </div>
 
