@@ -14,6 +14,7 @@ import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
 import { AuthPage } from "./pages/AuthPage";
 import { ExplorePage } from "./pages/ExplorePage";
+import { HashtagsPage } from "./pages/HashtagsPage";
 import { HomePage } from "./pages/HomePage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
@@ -103,6 +104,12 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const hashtagsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/hashtags",
+  component: HashtagsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   exploreRoute,
@@ -113,6 +120,7 @@ const routeTree = rootRoute.addChildren([
   savedRoute,
   reelsRoute,
   settingsRoute,
+  hashtagsRoute,
 ]);
 
 const router = createRouter({ routeTree });

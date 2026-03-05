@@ -2,79 +2,64 @@
 
 ## Current State
 
-VibeGram is a working Instagram-like social media app with:
-- Internet Identity auth + user registration
-- Home feed (posts from followed users), Explore, Upload, Notifications, Profile, DMs, Saved pages
-- Post creation (photo/video), likes, comments, follow/unfollow
-- Stories bar with 24h story upload and viewer
-- Save/bookmark posts
-- Search users
-- Bottom navigation bar
-- Splash screen with purple-pink gradient
-- Dark theme with OKLCH gradients
+VibeGram is a full-stack social media app on the Internet Computer with:
+- Auth (Internet Identity + profile registration)
+- Home feed with Stories bar (24h stories, story viewer with emoji reactions, reply, views panel)
+- Explore page (trending posts grid, user search, suggested users, reels horizontal scroll)
+- Upload / Media Creation Hub (Post, Story, Reels, Live tabs)
+- Reels vertical feed
+- Profile page (tabs: Posts/Reels/Tagged/Saved, edit profile, settings link)
+- User profile pages with follow/unfollow
+- Notifications
+- Messages (conversations)
+- Settings (account, privacy, story privacy select, close friends list via localStorage, blocked users, dark/light mode, verification request, about/privacy/TOS, feedback)
 
-Backend supports: UserProfile, Post, Comment, Notification, Message types.
-Components: authorization, blob-storage.
+Stories are stored as regular posts with `__story__` or `__cf__` caption prefixes.
+Close friends list is stored in localStorage under `vg_close_friends` key.
+The `AvatarWithRing` component renders gradient rings; a green ring for close friends is partially scaffolded in `StoryViewer` (checks `__cf__` prefix and shows a green ring & "CF" badge on author info).
 
 ## Requested Changes (Diff)
 
 ### Add
-- **App icon/logo**: Use uploaded VibeGram icon (InShot_20260306_023848346-1.png) on splash screen and as app favicon
-- **Media Creation Hub**: Unified creation modal with tabs for Post, Story, Reels, Live — each opens dedicated editor
-- **Reels system**: Dedicated Reels tab/page with vertical video scroll (swipe-up navigation), like/comment/share/follow on reels
-- **Stories enhancements**: Story creative tools (text with font styles, stickers, emoji reactions panel, drawing tool, filters, location/hashtag/mention stickers, link sticker), story privacy settings (public/followers/close friends/hidden), close friends list with green ring
-- **Story interactions**: Emoji reaction bar, reply input, views list in story viewer
-- **Save/Bookmark** on posts: already partially present, ensure visible on all post cards
-- **Share button**: Copy link to post, share sheet
-- **Tagged posts**: Backend + UI for tagging users in posts, "Tagged" tab on profile
-- **Collaboration posts**: Two-author posts appear on both profiles
-- **Verification badge**: Blue checkmark badge on verified users, request verification in settings
-- **Trending algorithm**: Trending section in Explore based on likes/comments/shares/engagement
-- **Notification types**: Extend to mentions, tags, collab requests, live alerts
-- **Safety tools**: Block/unblock users, report posts/accounts, hide comments, spam detection UI
-- **Settings page**: Full settings with account, privacy, close friends, blocked users, dark/light mode toggle, Privacy Policy, Terms, Contact/Support, About VibeGram
-- **Live streaming (simulated)**: Live broadcast start UI, viewer count, real-time emoji reactions, join with another user UI (frontend simulation since WebSockets not available)
-- **Messaging enhancements**: Photo/video send in DMs, emoji picker, message status (sent/delivered/seen), block in chat
-- **Close Friends**: Manage close friends list, green ring indicator on stories
+1. **Hashtag Discovery Page** (`/hashtags`) -- dedicated page for browsing and searching hashtags extracted from post captions, showing top hashtags with post counts and a post grid per hashtag.
+2. **Close Friends Story Feature** -- full green-ring indicator on the StoriesBar for stories posted by users in the close friends list; green ring on `AvatarWithRing` when `isCloseFriend` prop is true; `StoryUploadSheet` close friends toggle so the story caption is prefixed `__cf__`; `StoriesBar` reads localStorage close friends list to apply correct ring color.
 
 ### Modify
-- Splash screen: incorporate uploaded app icon prominently
-- Bottom nav: add Reels tab icon
-- Upload modal: replace with full Media Creation Hub
-- Home page: improve Stories bar with emoji reactions/reply, close friends green rings
-- Profile page: add Tagged Posts tab, Saved tab, verification badge display
-- Explore page: add Trending section with engagement-sorted content
-- Notifications page: extended notification types
-- Settings page: replace dropdown with full settings page
+- `StoriesBar.tsx` -- read `vg_close_friends` localStorage list, pass `isCloseFriend` flag to `StoryAvatarById` so it renders a green ring instead of gradient ring.
+- `AvatarWithRing.tsx` -- accept optional `isCloseFriend` prop; when true, render a solid green OKLCH ring instead of gradient.
+- `StoryUploadSheet.tsx` -- add a "Share with Close Friends only" toggle; when enabled, prepend `__cf__` to caption on submit.
+- `App.tsx` -- add `/hashtags` route and `HashtagsPage` import.
+- `ExplorePage.tsx` -- add a "Hashtags" chip/tab or button linking to `/hashtags`.
+- `BottomNav.tsx` -- optionally surface a subtle hashtag link or keep nav as-is (no change to bottom nav icons required).
 
 ### Remove
-- Old simple UploadModal (replaced by Media Creation Hub)
+- Nothing removed.
 
 ## Implementation Plan
 
-1. **Backend**: Extend Motoko with:
-   - Story type with privacy settings, views, reactions, close friends
-   - Reel type (short video, separate from posts)
-   - Extended notifications (mention, tag, collab, live)
-   - Saved posts per user
-   - Block list per user
-   - Close friends list per user
-   - Verification badge + request system
-   - Trending score computation
-   - Tagged posts (postId → [UserId])
-   - Collab posts (two authors)
-   - Report system
+1. Create `src/frontend/src/pages/HashtagsPage.tsx`:
+   - Parse hashtags from all explore feed posts (regex `#\w+` on captions).
+   - Build a map of `hashtag -> Post[]`.
+   - Show a search input to filter hashtags.
+   - Show top hashtags as pill chips with post count badges (sorted by count).
+   - Clicking a hashtag shows a 2-column grid of posts that used it.
+   - Back button returns to hashtag list.
+   - Route: `/hashtags`.
 
-2. **Frontend**:
-   - Update splash screen with uploaded app icon
-   - Build MediaCreationHub component (Post/Story/Reels/Live tabs)
-   - Build ReelsPage with vertical scroll feed
-   - Build SettingsPage with all subsections
-   - Enhance StoriesBar and StoryViewer with reactions, replies, views, creative tools UI, privacy
-   - Add CloseFriends management
-   - Add VerificationBadge component
-   - Add Trending section in Explore
-   - Add Tagged posts tab in Profile
-   - Enhance MessagesPage with emoji, media, status indicators, block
-   - Add safety/report dialogs
-   - Add Reels route and bottom nav icon
+2. Update `AvatarWithRing.tsx`:
+   - Add `isCloseFriend?: boolean` prop.
+   - When `isCloseFriend` is true, use OKLCH green ring (`oklch(0.55 0.2 150)`) instead of `gradient-bg`.
+
+3. Update `StoriesBar.tsx`:
+   - Read `vg_close_friends` from localStorage.
+   - Pass `isCloseFriend` to `StoryAvatarById` based on whether the story author's username is in the close friends list.
+   - `StoryAvatarById` fetches profile and forwards `isCloseFriend` to `StoryAvatar`.
+   - `StoryAvatar` uses the new `AvatarWithRing` isCloseFriend prop for the ring color.
+
+4. Update `StoryUploadSheet.tsx`:
+   - Add a Switch toggle labeled "Close Friends only".
+   - When enabled, prepend `__cf__` to the submitted caption so the story is identified as a close-friends story.
+
+5. Register `/hashtags` route in `App.tsx`.
+
+6. Add a "# Hashtags" link/button in `ExplorePage.tsx` header or as a section.

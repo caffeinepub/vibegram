@@ -13,10 +13,17 @@ interface StoryAvatarProps {
   profile: UserProfile | null | undefined;
   isOwn?: boolean;
   hasStory?: boolean;
+  isCloseFriend?: boolean;
   onClick: () => void;
 }
 
-function StoryAvatar({ profile, isOwn, hasStory, onClick }: StoryAvatarProps) {
+function StoryAvatar({
+  profile,
+  isOwn,
+  hasStory,
+  isCloseFriend,
+  onClick,
+}: StoryAvatarProps) {
   const photoUrl = profile?.profilePhoto?.getDirectURL();
   const initials = profile
     ? (profile.displayName || profile.username || "?")
@@ -27,6 +34,21 @@ function StoryAvatar({ profile, isOwn, hasStory, onClick }: StoryAvatarProps) {
         .slice(0, 2)
     : "?";
 
+  // Determine ring style
+  const hasRing = hasStory || isOwn;
+  const ringClassName = cn(
+    "w-[58px] h-[58px] rounded-full p-[2.5px]",
+    hasRing
+      ? isCloseFriend && !isOwn
+        ? "" // will use inline style for close friend green ring
+        : "gradient-bg"
+      : "bg-border",
+  );
+  const ringStyle =
+    hasRing && isCloseFriend && !isOwn
+      ? { background: "oklch(0.55 0.2 150)" }
+      : undefined;
+
   return (
     <button
       type="button"
@@ -35,12 +57,7 @@ function StoryAvatar({ profile, isOwn, hasStory, onClick }: StoryAvatarProps) {
       data-ocid={isOwn ? "stories.add.button" : "stories.item.button"}
     >
       {/* Ring wrapper */}
-      <div
-        className={cn(
-          "w-[58px] h-[58px] rounded-full p-[2.5px]",
-          hasStory || isOwn ? "gradient-bg" : "bg-border",
-        )}
-      >
+      <div className={ringClassName} style={ringStyle}>
         <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden relative border-2 border-background">
           {photoUrl ? (
             <img
@@ -72,10 +89,18 @@ function StoryAvatar({ profile, isOwn, hasStory, onClick }: StoryAvatarProps) {
         </div>
       </div>
 
-      {/* Username */}
+      {/* Username with close friend indicator */}
       <p className="text-[10px] text-muted-foreground font-body leading-none max-w-[58px] truncate text-center">
         {isOwn ? "Your story" : profile?.username || "..."}
       </p>
+      {isCloseFriend && !isOwn && (
+        <span
+          className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full text-white leading-none -mt-0.5"
+          style={{ background: "oklch(0.55 0.2 150)" }}
+        >
+          CF
+        </span>
+      )}
     </button>
   );
 }
@@ -89,7 +114,21 @@ function StoryAvatarById({
   onClick: () => void;
 }) {
   const { data: profile } = useGetUserProfile(userId);
-  return <StoryAvatar profile={profile} hasStory onClick={onClick} />;
+
+  // Read close friends from localStorage and check if this user is one
+  const closeFriends: string[] = JSON.parse(
+    localStorage.getItem("vg_close_friends") || "[]",
+  );
+  const isCloseFriend = closeFriends.includes(profile?.username ?? "");
+
+  return (
+    <StoryAvatar
+      profile={profile}
+      hasStory
+      isCloseFriend={isCloseFriend}
+      onClick={onClick}
+    />
+  );
 }
 
 interface StoriesBarProps {

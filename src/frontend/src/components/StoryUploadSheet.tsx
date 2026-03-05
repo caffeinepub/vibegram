@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   Sheet,
@@ -6,6 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, ImagePlus, Loader2, Video, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
@@ -26,6 +28,7 @@ export function StoryUploadSheet({
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
+  const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
@@ -60,6 +63,7 @@ export function StoryUploadSheet({
     setPreview(null);
     setUploadProgress(0);
     setUploadDone(false);
+    setIsCloseFriendsOnly(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -80,11 +84,11 @@ export function StoryUploadSheet({
         ? MediaType.video
         : MediaType.photo;
 
-      // Stories use caption '__story__' as sentinel
+      // Stories use caption '__story__' or '__cf__' (close friends only) as sentinel
       await createPost.mutateAsync({
         media: blob,
         mediaType,
-        caption: "__story__",
+        caption: isCloseFriendsOnly ? "__cf__" : "__story__",
       });
 
       setUploadDone(true);
@@ -214,6 +218,26 @@ export function StoryUploadSheet({
                   >
                     <X size={14} />
                   </button>
+                </div>
+
+                {/* Close Friends toggle */}
+                <div className="flex items-center gap-3 py-2.5 px-1 bg-card rounded-2xl border border-border">
+                  <div
+                    className="w-5 h-5 rounded-full shrink-0"
+                    style={{ background: "oklch(0.55 0.2 150)" }}
+                  />
+                  <Label
+                    htmlFor="cf-toggle"
+                    className="flex-1 text-sm font-medium cursor-pointer"
+                  >
+                    Close Friends only
+                  </Label>
+                  <Switch
+                    id="cf-toggle"
+                    checked={isCloseFriendsOnly}
+                    onCheckedChange={setIsCloseFriendsOnly}
+                    data-ocid="story.upload.cf.switch"
+                  />
                 </div>
 
                 {/* Upload progress */}

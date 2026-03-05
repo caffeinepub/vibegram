@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { Loader2, Play, Search, X } from "lucide-react";
+import { ChevronRight, Loader2, Play, Search, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { Post, UserId, UserProfile } from "../backend.d";
@@ -274,6 +274,26 @@ export function ExplorePage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Hashtag Discovery */}
+            <section>
+              <Link
+                to="/hashtags"
+                data-ocid="explore.hashtags.link"
+                className="flex items-center gap-2 bg-card rounded-2xl border border-border px-4 py-3 hover:bg-secondary/50 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center shrink-0">
+                  <span className="text-white font-bold text-sm">#</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Hashtag Discovery</p>
+                  <p className="text-xs text-muted-foreground">
+                    Browse trending hashtags
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+            </section>
+
             {/* Reels horizontal scroll section */}
             {reelPosts.length > 0 && (
               <section>

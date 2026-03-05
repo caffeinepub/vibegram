@@ -7,6 +7,7 @@ interface AvatarWithRingProps {
   profile: UserProfile | null | undefined;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRing?: boolean;
+  isCloseFriend?: boolean;
   className?: string;
 }
 
@@ -30,6 +31,7 @@ export function AvatarWithRing({
   profile,
   size = "md",
   showRing = false,
+  isCloseFriend = false,
   className,
 }: AvatarWithRingProps) {
   const initials = profile
@@ -41,7 +43,15 @@ export function AvatarWithRing({
   if (showRing) {
     return (
       <div
-        className={cn("rounded-full gradient-bg", ringPadding[size], className)}
+        className={cn(
+          "rounded-full",
+          ringPadding[size],
+          !isCloseFriend && "gradient-bg",
+          className,
+        )}
+        style={
+          isCloseFriend ? { background: "oklch(0.55 0.2 150)" } : undefined
+        }
       >
         <Avatar className={cn(sizeClasses[size], "border-2 border-background")}>
           {photoUrl && (
