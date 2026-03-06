@@ -1,6 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Check, Music2, Sliders, Smile, Type } from "lucide-react";
+import {
+  AtSign,
+  Check,
+  Hash,
+  Music2,
+  Sliders,
+  Smile,
+  Type,
+} from "lucide-react";
 import { useState } from "react";
 
 interface CreativeToolbarProps {
@@ -30,6 +38,8 @@ const STICKER_CATEGORIES = [
   {
     id: "smileys",
     icon: "😊",
+    label: "Smileys",
+    special: false,
     emojis: [
       "😊",
       "😂",
@@ -48,6 +58,8 @@ const STICKER_CATEGORIES = [
   {
     id: "party",
     icon: "🎉",
+    label: "Party",
+    special: false,
     emojis: [
       "🎉",
       "🎊",
@@ -66,6 +78,8 @@ const STICKER_CATEGORIES = [
   {
     id: "love",
     icon: "❤️",
+    label: "Love",
+    special: false,
     emojis: [
       "❤️",
       "💜",
@@ -84,6 +98,8 @@ const STICKER_CATEGORIES = [
   {
     id: "fire",
     icon: "🔥",
+    label: "Fire",
+    special: false,
     emojis: [
       "🔥",
       "⚡",
@@ -99,7 +115,9 @@ const STICKER_CATEGORIES = [
       "🎶",
     ],
   },
-] as const;
+  { id: "mention", icon: "@", label: "@Mention", special: true, emojis: [] },
+  { id: "hashtag", icon: "#", label: "#Hashtag", special: true, emojis: [] },
+];
 
 const TEXT_STYLES = ["Normal", "Bold", "Neon", "Shadow", "Outline"] as const;
 const TEXT_COLORS = [
@@ -113,16 +131,71 @@ const TEXT_COLORS = [
   { name: "orange", value: "#f97316" },
 ] as const;
 
-const SONGS = [
-  { title: "Blinding Lights", artist: "The Weeknd" },
-  { title: "Shape of You", artist: "Ed Sheeran" },
-  { title: "Levitating", artist: "Dua Lipa" },
-  { title: "Stay", artist: "The Kid LAROI" },
-  { title: "Bad Guy", artist: "Billie Eilish" },
-  { title: "Flowers", artist: "Miley Cyrus" },
-  { title: "As It Was", artist: "Harry Styles" },
-  { title: "Anti-Hero", artist: "Taylor Swift" },
-] as const;
+export type SongGenre = "All" | "Pop" | "Hip-Hop" | "Bollywood" | "R&B" | "EDM";
+
+export type Song = { title: string; artist: string; genre: SongGenre };
+
+export const ALL_SONGS: Song[] = [
+  // Pop
+  { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop" },
+  { title: "Cruel Summer", artist: "Taylor Swift", genre: "Pop" },
+  { title: "As It Was", artist: "Harry Styles", genre: "Pop" },
+  { title: "Watermelon Sugar", artist: "Harry Styles", genre: "Pop" },
+  { title: "Positions", artist: "Ariana Grande", genre: "Pop" },
+  { title: "Dynamite", artist: "BTS", genre: "Pop" },
+  { title: "Butter", artist: "BTS", genre: "Pop" },
+  { title: "Peaches", artist: "Justin Bieber", genre: "Pop" },
+  { title: "Stay With Me", artist: "Sam Smith", genre: "Pop" },
+  { title: "Someone You Loved", artist: "Lewis Capaldi", genre: "Pop" },
+  { title: "Sunflower", artist: "Post Malone", genre: "Pop" },
+  { title: "Levitating", artist: "Dua Lipa", genre: "Pop" },
+  { title: "Bad Guy", artist: "Billie Eilish", genre: "Pop" },
+  { title: "Flowers", artist: "Miley Cyrus", genre: "Pop" },
+  { title: "Shape of You", artist: "Ed Sheeran", genre: "Pop" },
+  // Hip-Hop
+  { title: "God's Plan", artist: "Drake", genre: "Hip-Hop" },
+  { title: "Rockstar", artist: "Post Malone", genre: "Hip-Hop" },
+  { title: "HUMBLE.", artist: "Kendrick Lamar", genre: "Hip-Hop" },
+  { title: "Old Town Road", artist: "Lil Nas X", genre: "Hip-Hop" },
+  { title: "Sicko Mode", artist: "Travis Scott", genre: "Hip-Hop" },
+  { title: "Money Trees", artist: "Kendrick Lamar", genre: "Hip-Hop" },
+  { title: "Lucid Dreams", artist: "Juice WRLD", genre: "Hip-Hop" },
+  { title: "Congratulations", artist: "Post Malone", genre: "Hip-Hop" },
+  { title: "Stay", artist: "The Kid LAROI", genre: "Hip-Hop" },
+  // Bollywood
+  { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood" },
+  { title: "Raataan Lambiyan", artist: "Jubin Nautiyal", genre: "Bollywood" },
+  { title: "Tum Hi Ho", artist: "Arijit Singh", genre: "Bollywood" },
+  { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood" },
+  { title: "Besharam Rang", artist: "Shilpa Rao", genre: "Bollywood" },
+  { title: "Ghungroo", artist: "Arijit Singh", genre: "Bollywood" },
+  { title: "Dil Chahta Hai", artist: "Shankar Mahadevan", genre: "Bollywood" },
+  { title: "Tera Yaar Hoon Main", artist: "Arijit Singh", genre: "Bollywood" },
+  // R&B
+  { title: "Essence", artist: "Wizkid ft. Tems", genre: "R&B" },
+  { title: "Leave The Door Open", artist: "Bruno Mars", genre: "R&B" },
+  { title: "Mood", artist: "24kGoldn", genre: "R&B" },
+  { title: "Drivers License", artist: "Olivia Rodrigo", genre: "R&B" },
+  // EDM
+  { title: "Blinding Lights", artist: "The Weeknd", genre: "EDM" },
+  {
+    title: "Don't You Worry Child",
+    artist: "Swedish House Mafia",
+    genre: "EDM",
+  },
+  { title: "Titanium", artist: "David Guetta", genre: "EDM" },
+  { title: "Lean On", artist: "Major Lazer", genre: "EDM" },
+  { title: "Closer", artist: "The Chainsmokers", genre: "EDM" },
+];
+
+const SONG_GENRES: SongGenre[] = [
+  "All",
+  "Pop",
+  "Hip-Hop",
+  "Bollywood",
+  "R&B",
+  "EDM",
+];
 
 type TabId = "filters" | "stickers" | "text" | "music";
 
@@ -146,6 +219,9 @@ export function CreativeToolbar({
   const [textInput, setTextInput] = useState("");
   const [textStyle, setTextStyle] = useState("Normal");
   const [textColor, setTextColor] = useState("#ffffff");
+  const [mentionInput, setMentionInput] = useState("");
+  const [hashtagInput, setHashtagInput] = useState("");
+  const [musicGenre, setMusicGenre] = useState<SongGenre>("All");
 
   return (
     <div
@@ -232,38 +308,140 @@ export function CreativeToolbar({
                   onClick={() => setStickerCategory(cat.id)}
                   data-ocid={`creative.stickers.${cat.id}.tab`}
                   className={cn(
-                    "shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all",
+                    "shrink-0 px-2.5 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all",
                     stickerCategory === cat.id
-                      ? "bg-primary/20 border border-primary/50"
-                      : "bg-secondary/60 hover:bg-secondary",
+                      ? "bg-primary/20 border border-primary/50 text-white"
+                      : "bg-secondary/60 hover:bg-secondary text-muted-foreground",
+                    cat.special && "font-black tracking-tight",
                   )}
+                  style={
+                    stickerCategory === cat.id && cat.special
+                      ? {
+                          background:
+                            "linear-gradient(135deg, oklch(0.62 0.22 295 / 0.25), oklch(0.65 0.25 350 / 0.25))",
+                          borderColor: "oklch(0.62 0.22 295 / 0.6)",
+                        }
+                      : undefined
+                  }
                 >
-                  {cat.icon}
+                  {cat.special ? (
+                    <span className="text-base leading-none">{cat.icon}</span>
+                  ) : (
+                    <span className="text-lg">{cat.icon}</span>
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Emoji grid */}
-            {STICKER_CATEGORIES.filter((c) => c.id === stickerCategory).map(
-              (cat) => (
-                <div
-                  key={cat.id}
-                  className="grid grid-cols-6 gap-1.5 max-h-28 overflow-y-auto scrollbar-none"
-                >
-                  {cat.emojis.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => onStickerAdd(emoji)}
-                      data-ocid="creative.stickers.button"
-                      className="w-full aspect-square rounded-xl flex items-center justify-center text-2xl bg-secondary/60 hover:bg-secondary active:scale-90 transition-all"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+            {/* Special: @Mention input */}
+            {stickerCategory === "mention" && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <AtSign
+                    size={14}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    value={mentionInput}
+                    onChange={(e) =>
+                      setMentionInput(e.target.value.replace(/^@/, ""))
+                    }
+                    placeholder="username"
+                    className="bg-secondary border-border text-sm h-9 pl-7"
+                    data-ocid="creative.stickers.mention.input"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && mentionInput.trim()) {
+                        onStickerAdd(`@${mentionInput.trim()}`);
+                        setMentionInput("");
+                      }
+                    }}
+                  />
                 </div>
-              ),
+                <button
+                  type="button"
+                  disabled={!mentionInput.trim()}
+                  onClick={() => {
+                    if (!mentionInput.trim()) return;
+                    onStickerAdd(`@${mentionInput.trim()}`);
+                    setMentionInput("");
+                  }}
+                  data-ocid="creative.stickers.mention.button"
+                  className="h-9 px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                  }}
+                >
+                  Add
+                </button>
+              </div>
             )}
+
+            {/* Special: #Hashtag input */}
+            {stickerCategory === "hashtag" && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Hash
+                    size={14}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    value={hashtagInput}
+                    onChange={(e) =>
+                      setHashtagInput(e.target.value.replace(/^#/, ""))
+                    }
+                    placeholder="hashtag"
+                    className="bg-secondary border-border text-sm h-9 pl-7"
+                    data-ocid="creative.stickers.hashtag.input"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && hashtagInput.trim()) {
+                        onStickerAdd(`#${hashtagInput.trim()}`);
+                        setHashtagInput("");
+                      }
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={!hashtagInput.trim()}
+                  onClick={() => {
+                    if (!hashtagInput.trim()) return;
+                    onStickerAdd(`#${hashtagInput.trim()}`);
+                    setHashtagInput("");
+                  }}
+                  data-ocid="creative.stickers.hashtag.button"
+                  className="h-9 px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            )}
+
+            {/* Emoji grid for regular categories */}
+            {STICKER_CATEGORIES.filter(
+              (c) => c.id === stickerCategory && !c.special,
+            ).map((cat) => (
+              <div
+                key={cat.id}
+                className="grid grid-cols-6 gap-1.5 max-h-28 overflow-y-auto scrollbar-none"
+              >
+                {cat.emojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => onStickerAdd(emoji)}
+                    data-ocid="creative.stickers.button"
+                    className="w-full aspect-square rounded-xl flex items-center justify-center text-2xl bg-secondary/60 hover:bg-secondary active:scale-90 transition-all"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
@@ -358,11 +536,38 @@ export function CreativeToolbar({
         {/* MUSIC */}
         {activeTab === "music" && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium px-1">
-              Add a Song
-            </p>
+            {/* Genre tabs */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+              {SONG_GENRES.map((genre) => (
+                <button
+                  key={genre}
+                  type="button"
+                  onClick={() => setMusicGenre(genre)}
+                  data-ocid={`creative.music.${genre.toLowerCase().replace(/[^a-z0-9]/g, "_")}.tab`}
+                  className={cn(
+                    "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
+                    musicGenre === genre
+                      ? "text-white"
+                      : "bg-secondary/80 text-muted-foreground hover:text-foreground",
+                  )}
+                  style={
+                    musicGenre === genre
+                      ? {
+                          background:
+                            "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                        }
+                      : undefined
+                  }
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-1 max-h-36 overflow-y-auto scrollbar-none">
-              {SONGS.map((song) => {
+              {ALL_SONGS.filter(
+                (s) => musicGenre === "All" || s.genre === musicGenre,
+              ).map((song) => {
                 const isSelected =
                   selectedSong?.title === song.title &&
                   selectedSong?.artist === song.artist;

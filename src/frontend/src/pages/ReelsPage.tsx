@@ -11,8 +11,10 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronUp,
+  Download,
   Heart,
   Loader2,
+  MapPin,
   MessageCircle,
   Pause,
   Play,
@@ -38,6 +40,39 @@ import {
   useToggleLike,
 } from "../hooks/useQueries";
 import { formatCount, formatRelativeTime } from "../utils/helpers";
+
+// ─── Caption Parser ───────────────────────────────────────────────────────────
+
+function parseReelCaption(raw: string) {
+  let caption = raw;
+  let collabUser = "";
+  let location = "";
+  let taggedUsers: string[] = [];
+
+  // Handle both __collab__ and __reelcollab__ prefixes
+  const collabMatch = caption.match(/^__(?:reel)?collab__(@[\w]+)__/);
+  if (collabMatch) {
+    collabUser = collabMatch[1];
+    caption = caption.slice(collabMatch[0].length);
+  }
+
+  const locMatch = caption.match(/__loc__(.*?)__/);
+  if (locMatch) {
+    location = locMatch[1];
+    caption = caption.replace(locMatch[0], "");
+  }
+
+  const tagsMatch = caption.match(/__tags__(.*?)__/);
+  if (tagsMatch) {
+    taggedUsers = tagsMatch[1].split(",").filter(Boolean);
+    caption = caption.replace(tagsMatch[0], "");
+  }
+
+  if (caption.startsWith("__reel__")) caption = caption.slice(8);
+  if (caption === "__story__") caption = "";
+
+  return { caption: caption.trim(), collabUser, location, taggedUsers };
+}
 
 // ─── Comment Item ─────────────────────────────────────────────────────────────
 
@@ -209,10 +244,35 @@ function ReelCard({ post, isActive }: ReelCardProps) {
 
   const mediaUrl = post.media?.getDirectURL();
 
-  // Extract caption: strip __reel__ prefix
-  const displayCaption = post.caption.startsWith("__reel__")
-    ? post.caption.slice(8)
-    : post.caption;
+  // Parse caption metadata
+  const {
+    caption: displayCaption,
+    collabUser,
+    location,
+    taggedUsers,
+  } = parseReelCaption(post.caption || "");
+
+  const handleDownload = useCallback(async () => {
+    if (!mediaUrl) {
+      toast.error("Video not available");
+      return;
+    }
+    try {
+      const response = await fetch(mediaUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `vibegram_reel_${post.id.toString()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Reel saved!");
+    } catch {
+      toast.error("Download failed");
+    }
+  }, [mediaUrl, post.id]);
 
   return (
     <div
@@ -374,6 +434,25 @@ function ReelCard({ post, isActive }: ReelCardProps) {
           </span>
         </button>
 
+        {/* Download */}
+        <button
+          type="button"
+          onClick={handleDownload}
+          data-ocid="reel.download.button"
+          className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+          aria-label="Download reel"
+        >
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200"
+            style={{ background: "rgba(0,0,0,0.4)" }}
+          >
+            <Download size={22} className="text-white" />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow">
+            Save
+          </span>
+        </button>
+
         {/* Author avatar */}
         <div className="flex flex-col items-center gap-1">
           <button
@@ -417,11 +496,38 @@ function ReelCard({ post, isActive }: ReelCardProps) {
           </span>
           <span className="text-white font-bold font-display text-sm drop-shadow">
             @{author?.username || "..."}
+            {collabUser && (
+              <>
+                {" "}
+                <span className="text-white/60">×</span>{" "}
+                <span style={{ color: "oklch(0.75 0.22 295)" }}>
+                  {collabUser}
+                </span>
+              </>
+            )}
           </span>
         </button>
+        {location && (
+          <div className="flex items-center gap-1 text-white/70 text-xs">
+            <MapPin size={11} />
+            <span>{location}</span>
+          </div>
+        )}
         {displayCaption && (
           <p className="text-white/90 text-sm leading-relaxed drop-shadow line-clamp-3">
             {displayCaption}
+          </p>
+        )}
+        {taggedUsers.length > 0 && (
+          <p className="text-white/60 text-xs">
+            with{" "}
+            {taggedUsers.map((u, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static tag list
+              <span key={i} className="text-white/80 font-semibold">
+                {u}
+                {i < taggedUsers.length - 1 ? ", " : ""}
+              </span>
+            ))}
           </p>
         )}
       </div>

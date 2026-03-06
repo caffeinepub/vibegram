@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Play } from "lucide-react";
 import {
   Bell,
   Bookmark,
@@ -26,6 +27,7 @@ import { toast } from "sonner";
 import { ExternalBlob } from "../backend";
 import type { Post } from "../backend.d";
 import { AvatarWithRing } from "../components/AvatarWithRing";
+import { PostDetailModal } from "../components/PostDetailModal";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -49,10 +51,18 @@ function getSavedPostIds(): string[] {
   }
 }
 
-function PostGridTile({ post }: { post: Post }) {
+function PostGridTile({
+  post,
+  onPostClick,
+}: { post: Post; onPostClick?: (post: Post) => void }) {
   const mediaUrl = post.media?.getDirectURL();
   return (
-    <div className="aspect-square rounded-xl overflow-hidden bg-secondary relative group">
+    <button
+      type="button"
+      className="aspect-square rounded-xl overflow-hidden bg-secondary relative group w-full"
+      onClick={() => onPostClick?.(post)}
+      aria-label="View post"
+    >
       {mediaUrl ? (
         post.mediaType === "video" ? (
           <div className="relative w-full h-full">
@@ -63,10 +73,7 @@ function PostGridTile({ post }: { post: Post }) {
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-black/40 rounded-full p-2">
-                {/* biome-ignore lint/a11y/noSvgWithoutTitle: decorative play icon */}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
+                <Play size={12} className="text-white fill-white" />
               </div>
             </div>
           </div>
@@ -81,7 +88,7 @@ function PostGridTile({ post }: { post: Post }) {
       ) : (
         <div className="w-full h-full gradient-bg opacity-30" />
       )}
-    </div>
+    </button>
   );
 }
 
@@ -244,6 +251,13 @@ export function ProfilePage() {
   const { data: followers = [] } = useFollowers(principalStr || null);
   const { data: following = [] } = useFollowing(principalStr || null);
   const [editOpen, setEditOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [postModalOpen, setPostModalOpen] = useState(false);
+
+  const handlePostClick = (post: Post) => {
+    setSelectedPost(post);
+    setPostModalOpen(true);
+  };
 
   // Verification: check localStorage or known usernames
   const isVerified =
@@ -447,7 +461,11 @@ export function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-3 gap-0.5 px-0.5">
                   {displayPosts.map((post) => (
-                    <PostGridTile key={post.id.toString()} post={post} />
+                    <PostGridTile
+                      key={post.id.toString()}
+                      post={post}
+                      onPostClick={handlePostClick}
+                    />
                   ))}
                 </div>
               )}
@@ -484,7 +502,11 @@ export function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-3 gap-0.5 px-0.5">
                   {reelPosts.map((post) => (
-                    <PostGridTile key={post.id.toString()} post={post} />
+                    <PostGridTile
+                      key={post.id.toString()}
+                      post={post}
+                      onPostClick={() => navigate({ to: "/reels" })}
+                    />
                   ))}
                 </div>
               )}
@@ -543,6 +565,12 @@ export function ProfilePage() {
         onOpenChange={setEditOpen}
         currentDisplayName={profile?.displayName || ""}
         currentBio={profile?.bio || ""}
+      />
+
+      <PostDetailModal
+        post={selectedPost}
+        open={postModalOpen}
+        onOpenChange={setPostModalOpen}
       />
     </div>
   );

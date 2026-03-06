@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   Sheet,
@@ -11,7 +13,10 @@ import {
   CheckCircle2,
   Clapperboard,
   Loader2,
+  MapPin,
   Music2,
+  Tag,
+  Users,
   Video,
   X,
 } from "lucide-react";
@@ -32,6 +37,9 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [collabUser, setCollabUser] = useState("");
+  const [tagPeople, setTagPeople] = useState("");
+  const [locationTag, setLocationTag] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
   const [filterStyle, setFilterStyle] = useState("");
@@ -73,6 +81,9 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setCaption("");
+    setCollabUser("");
+    setTagPeople("");
+    setLocationTag("");
     setUploadProgress(0);
     setUploadDone(false);
     setFilterStyle("");
@@ -96,9 +107,27 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
       );
 
       // Reels use '__reel__' prefix so they can be filtered in the Reels page
-      const reelCaption = caption.trim()
+      let reelCaption = caption.trim()
         ? `__reel__${caption.trim()}`
         : "__reel__";
+      if (collabUser.trim()) {
+        const cu = collabUser.trim().startsWith("@")
+          ? collabUser.trim()
+          : `@${collabUser.trim()}`;
+        reelCaption = `__reelcollab__${cu}__${reelCaption}`;
+      }
+      if (locationTag.trim()) reelCaption += `__loc__${locationTag.trim()}__`;
+      if (tagPeople.trim()) {
+        const tags = tagPeople
+          .split(",")
+          .map((t) => {
+            const tr = t.trim();
+            return tr.startsWith("@") ? tr : `@${tr}`;
+          })
+          .filter(Boolean)
+          .join(",");
+        if (tags) reelCaption += `__tags__${tags}__`;
+      }
 
       await createPost.mutateAsync({
         media: blob,
@@ -301,6 +330,51 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
                   rows={2}
                   maxLength={2200}
                 />
+
+                {/* Collaborate with */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Users size={13} className="text-muted-foreground" />{" "}
+                    Collaborate with
+                  </Label>
+                  <Input
+                    value={collabUser}
+                    onChange={(e) => setCollabUser(e.target.value)}
+                    placeholder="@username"
+                    className="bg-secondary border-border text-sm"
+                    data-ocid="reel.upload.collab.input"
+                  />
+                </div>
+
+                {/* Tag people */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Tag size={13} className="text-muted-foreground" /> Tag
+                    People
+                  </Label>
+                  <Input
+                    value={tagPeople}
+                    onChange={(e) => setTagPeople(e.target.value)}
+                    placeholder="@user1, @user2"
+                    className="bg-secondary border-border text-sm"
+                    data-ocid="reel.upload.tags.input"
+                  />
+                </div>
+
+                {/* Location */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <MapPin size={13} className="text-muted-foreground" />{" "}
+                    Location
+                  </Label>
+                  <Input
+                    value={locationTag}
+                    onChange={(e) => setLocationTag(e.target.value)}
+                    placeholder="Add location..."
+                    className="bg-secondary border-border text-sm"
+                    data-ocid="reel.upload.location.input"
+                  />
+                </div>
 
                 {/* Upload progress */}
                 {isUploading && uploadProgress > 0 && (

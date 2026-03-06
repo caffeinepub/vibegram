@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -6,7 +8,10 @@ import {
   CheckCircle2,
   ImagePlus,
   Loader2,
+  MapPin,
   Music2,
+  Tag,
+  Users,
   Video,
   X,
 } from "lucide-react";
@@ -29,6 +34,9 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [collabUser, setCollabUser] = useState("");
+  const [tagPeople, setTagPeople] = useState("");
+  const [locationTag, setLocationTag] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
@@ -81,6 +89,9 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setCaption("");
+    setCollabUser("");
+    setTagPeople("");
+    setLocationTag("");
     setUploadProgress(0);
     setUploadDone(false);
     setFilterStyle("");
@@ -104,7 +115,33 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
         ? MediaType.video
         : MediaType.photo;
 
-      await createPost.mutateAsync({ media: blob, mediaType, caption });
+      let finalCaption = caption.trim();
+      if (collabUser.trim()) {
+        const cu = collabUser.trim().startsWith("@")
+          ? collabUser.trim()
+          : `@${collabUser.trim()}`;
+        finalCaption = `__collab__${cu}__${finalCaption}`;
+      }
+      if (locationTag.trim()) {
+        finalCaption += `__loc__${locationTag.trim()}__`;
+      }
+      if (tagPeople.trim()) {
+        const tags = tagPeople
+          .split(",")
+          .map((t) => {
+            const trimmed = t.trim();
+            return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+          })
+          .filter(Boolean)
+          .join(",");
+        if (tags) finalCaption += `__tags__${tags}__`;
+      }
+
+      await createPost.mutateAsync({
+        media: blob,
+        mediaType,
+        caption: finalCaption,
+      });
 
       setUploadDone(true);
       toast.success("Post published! 🎉");
@@ -326,6 +363,50 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
                 <p className="text-right text-xs text-muted-foreground mt-1">
                   {caption.length}/2200
                 </p>
+              </div>
+
+              {/* Collaborate with */}
+              <div className="space-y-1.5">
+                <Label className="text-sm flex items-center gap-1.5">
+                  <Users size={13} className="text-muted-foreground" />{" "}
+                  Collaborate with
+                </Label>
+                <Input
+                  value={collabUser}
+                  onChange={(e) => setCollabUser(e.target.value)}
+                  placeholder="@username"
+                  className="bg-secondary border-border text-sm"
+                  data-ocid="upload.collab.input"
+                />
+              </div>
+
+              {/* Tag people */}
+              <div className="space-y-1.5">
+                <Label className="text-sm flex items-center gap-1.5">
+                  <Tag size={13} className="text-muted-foreground" /> Tag People
+                </Label>
+                <Input
+                  value={tagPeople}
+                  onChange={(e) => setTagPeople(e.target.value)}
+                  placeholder="@user1, @user2"
+                  className="bg-secondary border-border text-sm"
+                  data-ocid="upload.tags.input"
+                />
+              </div>
+
+              {/* Location */}
+              <div className="space-y-1.5">
+                <Label className="text-sm flex items-center gap-1.5">
+                  <MapPin size={13} className="text-muted-foreground" />{" "}
+                  Location
+                </Label>
+                <Input
+                  value={locationTag}
+                  onChange={(e) => setLocationTag(e.target.value)}
+                  placeholder="Add location..."
+                  className="bg-secondary border-border text-sm"
+                  data-ocid="upload.location.input"
+                />
               </div>
 
               {/* Upload progress */}

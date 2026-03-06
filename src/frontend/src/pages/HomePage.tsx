@@ -153,6 +153,7 @@ export function HomePage() {
                 post={post}
                 index={index + 1}
                 onCommentClick={handleCommentClick}
+                onPostClick={handleCommentClick}
               />
             ))}
           </div>

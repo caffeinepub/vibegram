@@ -11,6 +11,7 @@ import {
   Copy,
   Flag,
   Heart,
+  MapPin,
   MessageCircle,
   MoreHorizontal,
   Share2,
@@ -54,6 +55,37 @@ function toggleSavedPost(postId: string): boolean {
   return idx < 0;
 }
 
+/** Parse caption metadata markers */
+function parseCaption(raw: string) {
+  let caption = raw;
+  let collabUser = "";
+  let location = "";
+  let taggedUsers: string[] = [];
+
+  const collabMatch = caption.match(/^__collab__(@[\w]+)__/);
+  if (collabMatch) {
+    collabUser = collabMatch[1];
+    caption = caption.slice(collabMatch[0].length);
+  }
+
+  const locMatch = caption.match(/__loc__(.*?)__/);
+  if (locMatch) {
+    location = locMatch[1];
+    caption = caption.replace(locMatch[0], "");
+  }
+
+  const tagsMatch = caption.match(/__tags__(.*?)__/);
+  if (tagsMatch) {
+    taggedUsers = tagsMatch[1].split(",").filter(Boolean);
+    caption = caption.replace(tagsMatch[0], "");
+  }
+
+  if (caption.startsWith("__reel__")) caption = caption.slice(8);
+  if (caption === "__story__") caption = "";
+
+  return { caption: caption.trim(), collabUser, location, taggedUsers };
+}
+
 /** Render caption text with @mentions highlighted in purple */
 function CaptionWithMentions({ text }: { text: string }) {
   // Split by @username pattern
@@ -79,9 +111,15 @@ interface PostCardProps {
   post: Post;
   index: number;
   onCommentClick: (post: Post) => void;
+  onPostClick?: (post: Post) => void;
 }
 
-export function PostCard({ post, index, onCommentClick }: PostCardProps) {
+export function PostCard({
+  post,
+  index,
+  onCommentClick,
+  onPostClick,
+}: PostCardProps) {
   const { identity } = useInternetIdentity();
   const { data: author } = useGetUserProfile(post.authorId);
   const { data: likes = [] } = usePostLikes(post.id);
@@ -158,13 +196,13 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
 
   const mediaUrl = post.media?.getDirectURL();
 
-  // Strip internal markers from caption
-  const displayCaption =
-    post.caption && post.caption !== "__story__"
-      ? post.caption.startsWith("__reel__")
-        ? post.caption.slice(8)
-        : post.caption
-      : null;
+  // Parse caption metadata
+  const {
+    caption: displayCaption,
+    collabUser,
+    location,
+    taggedUsers,
+  } = parseCaption(post.caption || "");
 
   return (
     <article
@@ -180,8 +218,18 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
               {author?.displayName || author?.username || "..."}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              @{author?.username || "..."} ·{" "}
-              {formatRelativeTime(post.createdAt)}
+              {collabUser ? (
+                <>
+                  @{author?.username || "..."}{" "}
+                  <span className="text-muted-foreground">×</span>{" "}
+                  <span className="gradient-text font-semibold">
+                    {collabUser}
+                  </span>
+                </>
+              ) : (
+                <>@{author?.username || "..."}</>
+              )}{" "}
+              · {formatRelativeTime(post.createdAt)}
             </p>
           </div>
         </div>
@@ -231,14 +279,19 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
         </DropdownMenu>
       </div>
 
-      {/* Media */}
-      <div className="relative bg-secondary aspect-square w-full overflow-hidden">
+      {/* Media — clickable to open post detail */}
+      <button
+        type="button"
+        className="relative bg-secondary aspect-square w-full overflow-hidden block cursor-pointer"
+        onClick={() => onPostClick?.(post)}
+        aria-label="View post"
+        data-ocid="post.media.button"
+      >
         {mediaUrl ? (
           post.mediaType === "video" ? (
             <video
               src={mediaUrl}
               className="w-full h-full object-cover"
-              controls
               playsInline
               muted
             />
@@ -253,7 +306,15 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
         ) : (
           <div className="w-full h-full gradient-bg opacity-30" />
         )}
-      </div>
+      </button>
+
+      {/* Location chip */}
+      {location && (
+        <div className="flex items-center gap-1 px-4 pt-2 text-xs text-muted-foreground">
+          <MapPin size={11} />
+          <span>{location}</span>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-4 py-3 space-y-2">
@@ -348,6 +409,20 @@ export function PostCard({ post, index, onCommentClick }: PostCardProps) {
             <span className="text-foreground/90 line-clamp-2">
               <CaptionWithMentions text={displayCaption} />
             </span>
+          </p>
+        )}
+
+        {/* Tagged users */}
+        {taggedUsers.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            with{" "}
+            {taggedUsers.map((u, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static tag list
+              <span key={i}>
+                <span className="text-vibe-purple font-semibold">{u}</span>
+                {i < taggedUsers.length - 1 ? ", " : ""}
+              </span>
+            ))}
           </p>
         )}
       </div>
