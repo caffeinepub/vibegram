@@ -16,11 +16,14 @@ import {
   Bell,
   Bookmark,
   Clapperboard,
+  ExternalLink,
   Grid3x3,
   Loader2,
+  Plus,
   Settings,
   Share2,
   Tag,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
@@ -42,6 +45,34 @@ import {
   useUserPosts,
 } from "../hooks/useQueries";
 import { formatCount } from "../utils/helpers";
+
+// ─── Social Links helpers ─────────────────────────────────────────────────────
+
+interface SocialLink {
+  label: string;
+  url: string;
+}
+
+function getProfileLinks(username: string): SocialLink[] {
+  try {
+    const raw = localStorage.getItem(`vg_profile_links_${username}`);
+    return raw ? (JSON.parse(raw) as SocialLink[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveProfileLinks(username: string, links: SocialLink[]) {
+  localStorage.setItem(`vg_profile_links_${username}`, JSON.stringify(links));
+}
+
+function getProfilePronouns(username: string): string {
+  return localStorage.getItem(`vg_profile_pronouns_${username}`) ?? "";
+}
+
+function saveProfilePronouns(username: string, pronouns: string) {
+  localStorage.setItem(`vg_profile_pronouns_${username}`, pronouns);
+}
 
 const SAVED_POSTS_KEY = "vg_saved_posts";
 
@@ -137,24 +168,43 @@ function SavedPostTile({ postId }: { postId: string }) {
   );
 }
 
+const PRONOUN_OPTIONS = ["he/him", "she/her", "they/them", "other"];
+
 function EditProfileModal({
   open,
   onOpenChange,
   currentDisplayName,
   currentBio,
+  currentUsername,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   currentDisplayName: string;
   currentBio: string;
+  currentUsername: string;
 }) {
   const [displayName, setDisplayName] = useState(currentDisplayName);
   const [bio, setBio] = useState(currentBio);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [pronouns, setPronouns] = useState(() =>
+    getProfilePronouns(currentUsername),
+  );
+  const [links, setLinks] = useState<SocialLink[]>(() =>
+    getProfileLinks(currentUsername),
+  );
   const updateProfile = useUpdateProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate URLs
+    for (const link of links) {
+      if (link.url && !/^https?:\/\/.+/.test(link.url)) {
+        toast.error(
+          `Invalid URL: "${link.url}" — must start with http:// or https://`,
+        );
+        return;
+      }
+    }
     try {
       let profilePhoto: ExternalBlob | null = null;
       if (photoFile) {
@@ -162,6 +212,11 @@ function EditProfileModal({
         profilePhoto = ExternalBlob.fromBytes(bytes);
       }
       await updateProfile.mutateAsync({ displayName, bio, profilePhoto });
+      saveProfilePronouns(currentUsername, pronouns);
+      saveProfileLinks(
+        currentUsername,
+        links.filter((l) => l.url),
+      );
       toast.success("Profile updated!");
       onOpenChange(false);
     } catch {
@@ -169,10 +224,24 @@ function EditProfileModal({
     }
   };
 
+  const addLink = () => {
+    if (links.length < 3) setLinks((prev) => [...prev, { label: "", url: "" }]);
+  };
+
+  const removeLink = (idx: number) => {
+    setLinks((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateLink = (idx: number, field: keyof SocialLink, value: string) => {
+    setLinks((prev) =>
+      prev.map((l, i) => (i === idx ? { ...l, [field]: value } : l)),
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-sm bg-card border-border rounded-2xl"
+        className="max-w-sm bg-card border-border rounded-2xl max-h-[90dvh] overflow-y-auto"
         data-ocid="profile.edit.dialog"
       >
         <DialogHeader>
@@ -204,6 +273,95 @@ function EditProfileModal({
               {bio.length}/150
             </p>
           </div>
+
+          {/* Pronouns */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Pronouns</Label>
+            <Input
+              value={pronouns}
+              onChange={(e) => setPronouns(e.target.value)}
+              className="bg-secondary border-border"
+              placeholder="he/him, she/her, they/them..."
+              data-ocid="profile.edit.pronouns.input"
+            />
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {PRONOUN_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() =>
+                    setPronouns((p) => (p === option ? "" : option))
+                  }
+                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-all border"
+                  style={
+                    pronouns === option
+                      ? {
+                          background:
+                            "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                          borderColor: "transparent",
+                          color: "white",
+                        }
+                      : {
+                          background: "oklch(0.18 0.015 265)",
+                          borderColor: "oklch(0.28 0.015 270)",
+                          color: "oklch(0.7 0.04 265)",
+                        }
+                  }
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div className="space-y-2">
+            <Label className="text-sm">Social Links (up to 3)</Label>
+            {links.map((link, idx) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: ordered list of up to 3 links
+              <div key={`link-${idx}`} className="flex gap-1.5 items-center">
+                <Input
+                  value={link.label}
+                  onChange={(e) =>
+                    updateLink(idx, "label", e.target.value.slice(0, 15))
+                  }
+                  className="bg-secondary border-border w-24 shrink-0 text-xs"
+                  placeholder="Label"
+                  data-ocid={`profile.edit.link_label.input.${idx + 1}`}
+                />
+                <Input
+                  value={link.url}
+                  onChange={(e) => updateLink(idx, "url", e.target.value)}
+                  className="bg-secondary border-border flex-1 text-xs"
+                  placeholder="https://..."
+                  type="url"
+                  data-ocid={`profile.edit.link_url.input.${idx + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeLink(idx)}
+                  data-ocid={`profile.edit.link_remove.button.${idx + 1}`}
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  aria-label="Remove link"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            {links.length < 3 && (
+              <button
+                type="button"
+                onClick={addLink}
+                data-ocid="profile.edit.add_link.button"
+                className="flex items-center gap-1.5 text-xs font-semibold transition-colors"
+                style={{ color: "oklch(0.62 0.22 295)" }}
+              >
+                <Plus size={13} />
+                Add Link
+              </button>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label className="text-sm">Profile Photo</Label>
             <Input
@@ -372,9 +530,22 @@ export function ProfilePage() {
                 </h2>
                 {isVerified && <VerificationBadge size="md" />}
               </div>
-              <p className="text-sm text-muted-foreground">
-                @{profile?.username}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">
+                  @{profile?.username}
+                </p>
+                {profile?.username && getProfilePronouns(profile.username) && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "oklch(0.22 0.015 280)",
+                      color: "oklch(0.62 0.12 295)",
+                    }}
+                  >
+                    {getProfilePronouns(profile.username)}
+                  </span>
+                )}
+              </div>
 
               {/* Stats */}
               <div className="flex gap-5 pt-2">
@@ -406,6 +577,30 @@ export function ProfilePage() {
               {profile.bio}
             </p>
           )}
+
+          {/* Social Links */}
+          {profile?.username &&
+            getProfileLinks(profile.username).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {getProfileLinks(profile.username).map((link) => (
+                  <a
+                    key={`${link.label}-${link.url}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full transition-all hover:opacity-80"
+                    style={{
+                      background: "oklch(0.62 0.22 295 / 0.12)",
+                      color: "oklch(0.72 0.18 295)",
+                      border: "1px solid oklch(0.62 0.22 295 / 0.3)",
+                    }}
+                  >
+                    <ExternalLink size={10} />
+                    {link.label || link.url}
+                  </a>
+                ))}
+              </div>
+            )}
 
           {/* Edit profile button */}
           <Button
@@ -585,6 +780,7 @@ export function ProfilePage() {
         onOpenChange={setEditOpen}
         currentDisplayName={profile?.displayName || ""}
         currentBio={profile?.bio || ""}
+        currentUsername={profile?.username || ""}
       />
 
       <PostDetailModal

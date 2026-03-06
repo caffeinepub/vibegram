@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -15,7 +16,11 @@ interface VGAccount {
   username: string;
   displayName: string;
   password: string;
+  email?: string;
+  phone?: string;
 }
+
+type LoginTab = "username" | "email" | "phone";
 
 function getAccounts(): VGAccount[] {
   try {
@@ -31,10 +36,21 @@ function saveAccount(acc: VGAccount) {
   localStorage.setItem("vg_accounts", JSON.stringify(accounts));
 }
 
-function findAccount(username: string): VGAccount | undefined {
+function findAccountByUsername(username: string): VGAccount | undefined {
   return getAccounts().find(
     (a) => a.username.toLowerCase() === username.toLowerCase(),
   );
+}
+
+function findAccountByEmail(email: string): VGAccount | undefined {
+  return getAccounts().find(
+    (a) => a.email?.toLowerCase() === email.toLowerCase(),
+  );
+}
+
+function findAccountByPhone(phone: string): VGAccount | undefined {
+  const normalized = phone.replace(/\s/g, "");
+  return getAccounts().find((a) => a.phone?.replace(/\s/g, "") === normalized);
 }
 
 function setSession(username: string) {
@@ -44,12 +60,16 @@ function setSession(username: string) {
 export function AuthPage({ needsProfile }: AuthPageProps) {
   const { login, isLoggingIn, identity } = useInternetIdentity();
   const registerUser = useRegisterUser();
+  const navigate = useNavigate();
 
   // Auth mode: "login" | "create_account"
   const [mode, setMode] = useState<"login" | "create_account">("login");
 
+  // Login tab
+  const [loginTab, setLoginTab] = useState<LoginTab>("username");
+
   // Login fields
-  const [loginUsername, setLoginUsername] = useState("");
+  const [loginInput, setLoginInput] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
@@ -57,6 +77,8 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
   // Create account fields
   const [fullName, setFullName] = useState("");
   const [newUsername, setNewUsername] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -75,16 +97,31 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
-    if (!loginUsername.trim() || !loginPassword.trim()) {
-      setLoginError("Please enter your username and password.");
+    if (!loginInput.trim() || !loginPassword.trim()) {
+      setLoginError("Please enter your credentials and password.");
       return;
     }
     setIsSubmitting(true);
     try {
-      const acc = findAccount(loginUsername.trim());
-      if (!acc) {
-        setLoginError("No account found with this username.");
-        return;
+      let acc: VGAccount | undefined;
+      if (loginTab === "username") {
+        acc = findAccountByUsername(loginInput.trim());
+        if (!acc) {
+          setLoginError("No account found with this username.");
+          return;
+        }
+      } else if (loginTab === "email") {
+        acc = findAccountByEmail(loginInput.trim());
+        if (!acc) {
+          setLoginError("No account found with this email.");
+          return;
+        }
+      } else {
+        acc = findAccountByPhone(loginInput.trim());
+        if (!acc) {
+          setLoginError("No account found with this phone number.");
+          return;
+        }
       }
       if (acc.password !== loginPassword) {
         setLoginError("Incorrect password. Please try again.");
@@ -108,7 +145,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
       !newPassword.trim() ||
       !confirmPassword.trim()
     ) {
-      setSignupError("Please fill in all fields.");
+      setSignupError("Please fill in name, username, and password fields.");
       return;
     }
     if (!/^[a-z0-9_]{3,20}$/.test(newUsername)) {
@@ -125,7 +162,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
       setSignupError("Passwords do not match.");
       return;
     }
-    if (findAccount(newUsername)) {
+    if (findAccountByUsername(newUsername)) {
       setSignupError("This username is already taken. Try another.");
       return;
     }
@@ -135,11 +172,15 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
         username: newUsername,
         displayName: fullName.trim(),
         password: newPassword,
+        email: newEmail.trim() || undefined,
+        phone: newPhone.trim() || undefined,
       });
       setSession(newUsername);
       // Trigger ICP login for backend compatibility
       login();
       toast.success(`Account created! Welcome to VibeGram, @${newUsername} 🎉`);
+      // Navigate to discover people
+      navigate({ to: "/discover" });
     } finally {
       setIsSubmitting(false);
     }
@@ -336,8 +377,43 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                   WebkitBackdropFilter: "blur(24px)",
                 }}
               >
+                {/* Login tab switcher */}
+                <div
+                  className="flex rounded-xl overflow-hidden mb-4 p-0.5"
+                  style={{ background: "oklch(0.18 0.015 265)" }}
+                >
+                  {(["username", "email", "phone"] as LoginTab[]).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setLoginTab(tab);
+                        setLoginInput("");
+                        setLoginError("");
+                      }}
+                      className="flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-all"
+                      style={
+                        loginTab === tab
+                          ? {
+                              background:
+                                "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                              color: "white",
+                            }
+                          : { color: "oklch(0.55 0.03 265)" }
+                      }
+                      data-ocid={`auth.login_tab.${tab}`}
+                    >
+                      {tab === "username"
+                        ? "@Username"
+                        : tab === "email"
+                          ? "Email"
+                          : "Phone"}
+                    </button>
+                  ))}
+                </div>
+
                 <form onSubmit={handleLogin} className="space-y-3">
-                  {/* Username input */}
+                  {/* Dynamic input based on tab */}
                   <div
                     className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
                     style={{
@@ -345,22 +421,47 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                       borderColor: "oklch(0.25 0.02 280)",
                     }}
                   >
-                    <span
-                      className="text-sm font-semibold mr-1.5 select-none"
-                      style={{ color: "oklch(0.62 0.28 340)" }}
-                    >
-                      @
-                    </span>
+                    {loginTab === "username" && (
+                      <span
+                        className="text-sm font-semibold mr-1.5 select-none"
+                        style={{ color: "oklch(0.62 0.28 340)" }}
+                      >
+                        @
+                      </span>
+                    )}
                     <Input
-                      data-ocid="auth.username.input"
-                      value={loginUsername}
+                      data-ocid="auth.login.input"
+                      value={loginInput}
                       onChange={(e) => {
-                        setLoginUsername(e.target.value.toLowerCase());
+                        setLoginInput(
+                          loginTab === "username"
+                            ? e.target.value.toLowerCase()
+                            : e.target.value,
+                        );
                         setLoginError("");
                       }}
-                      placeholder="username"
+                      placeholder={
+                        loginTab === "username"
+                          ? "username"
+                          : loginTab === "email"
+                            ? "Email address"
+                            : "+91 9876543210"
+                      }
+                      type={
+                        loginTab === "email"
+                          ? "email"
+                          : loginTab === "phone"
+                            ? "tel"
+                            : "text"
+                      }
                       className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm"
-                      autoComplete="username"
+                      autoComplete={
+                        loginTab === "username"
+                          ? "username"
+                          : loginTab === "email"
+                            ? "email"
+                            : "tel"
+                      }
                       autoCapitalize="none"
                     />
                   </div>
@@ -559,6 +660,50 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                       className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm"
                       autoComplete="username"
                       autoCapitalize="none"
+                    />
+                  </div>
+
+                  {/* Email (optional) */}
+                  <div
+                    className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                    style={{
+                      background: "oklch(0.18 0.015 265)",
+                      borderColor: "oklch(0.25 0.02 280)",
+                    }}
+                  >
+                    <Input
+                      data-ocid="auth.email.input"
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => {
+                        setNewEmail(e.target.value);
+                        setSignupError("");
+                      }}
+                      placeholder="Email address (optional)"
+                      className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm"
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  {/* Phone (optional) */}
+                  <div
+                    className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                    style={{
+                      background: "oklch(0.18 0.015 265)",
+                      borderColor: "oklch(0.25 0.02 280)",
+                    }}
+                  >
+                    <Input
+                      data-ocid="auth.phone.input"
+                      type="tel"
+                      value={newPhone}
+                      onChange={(e) => {
+                        setNewPhone(e.target.value);
+                        setSignupError("");
+                      }}
+                      placeholder="Phone number (optional)"
+                      className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm"
+                      autoComplete="tel"
                     />
                   </div>
 

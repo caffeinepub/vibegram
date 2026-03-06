@@ -14,6 +14,7 @@ import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
 import { AuthPage } from "./pages/AuthPage";
 import { CopyrightPage } from "./pages/CopyrightPage";
+import { DiscoverPeoplePage } from "./pages/DiscoverPeoplePage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { HashtagsPage } from "./pages/HashtagsPage";
 import { HomePage } from "./pages/HomePage";
@@ -131,6 +132,12 @@ const copyrightRoute = createRoute({
   component: CopyrightPage,
 });
 
+const discoverRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/discover",
+  component: DiscoverPeoplePage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   exploreRoute,
@@ -145,6 +152,7 @@ const routeTree = rootRoute.addChildren([
   privacyPolicyRoute,
   termsRoute,
   copyrightRoute,
+  discoverRoute,
 ]);
 
 const router = createRouter({ routeTree });

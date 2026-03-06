@@ -44,15 +44,42 @@ export function VideoCallSheet({
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
+  const [cameraError, setCameraError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selfVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
+  // Request camera/microphone when sheet opens; release when it closes
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Stop all tracks on close
+      if (streamRef.current) {
+        for (const t of streamRef.current.getTracks()) t.stop();
+        streamRef.current = null;
+      }
+      setCameraError(false);
+      return;
+    }
+
     setCallState("ringing");
     setDuration(0);
     setIsMuted(false);
     setIsCameraOn(true);
+    setCameraError(false);
+
+    // Attempt camera access
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        streamRef.current = stream;
+        if (selfVideoRef.current) {
+          selfVideoRef.current.srcObject = stream;
+        }
+      })
+      .catch(() => {
+        setCameraError(true);
+      });
 
     ringTimerRef.current = setTimeout(() => {
       setCallState("connected");
@@ -63,6 +90,24 @@ export function VideoCallSheet({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [open]);
+
+  // When camera is toggled off, pause video tracks
+  useEffect(() => {
+    if (streamRef.current) {
+      for (const t of streamRef.current.getVideoTracks()) {
+        t.enabled = isCameraOn;
+      }
+    }
+  }, [isCameraOn]);
+
+  // When muted, mute audio tracks
+  useEffect(() => {
+    if (streamRef.current) {
+      for (const t of streamRef.current.getAudioTracks()) {
+        t.enabled = !isMuted;
+      }
+    }
+  }, [isMuted]);
 
   useEffect(() => {
     if (callState === "connected") {
@@ -189,17 +234,39 @@ export function VideoCallSheet({
                   "linear-gradient(135deg, oklch(0.18 0.02 295), oklch(0.22 0.02 340))",
               }}
             >
-              {isCameraOn ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                  <div
-                    className="w-10 h-10 rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, oklch(0.62 0.22 295 / 0.4), oklch(0.65 0.25 350 / 0.4))",
+              {cameraError ? (
+                <div className="flex flex-col items-center gap-1.5 px-2 text-center">
+                  <VideoOff size={18} className="text-white/50" />
+                  <p className="text-white/50 text-[9px] leading-tight">
+                    Camera access denied
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.mediaDevices
+                        .getUserMedia({ video: true, audio: true })
+                        .then((stream) => {
+                          streamRef.current = stream;
+                          if (selfVideoRef.current) {
+                            selfVideoRef.current.srcObject = stream;
+                          }
+                          setCameraError(false);
+                        })
+                        .catch(() => setCameraError(true));
                     }}
-                  />
-                  <p className="text-white/70 text-xs">You</p>
+                    className="text-[9px] text-white/70 underline"
+                  >
+                    Allow Camera
+                  </button>
                 </div>
+              ) : isCameraOn ? (
+                <video
+                  ref={selfVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <div className="flex flex-col items-center gap-1.5">
                   <VideoOff size={18} className="text-white/40" />

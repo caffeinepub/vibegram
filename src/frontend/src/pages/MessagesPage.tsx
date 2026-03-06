@@ -14,11 +14,14 @@ import { Principal } from "@dfinity/principal";
 import {
   ArrowLeft,
   Check,
+  ExternalLink,
   FileText,
+  MapPin,
   MessageSquare,
   Music2,
   Phone,
   Send,
+  Smile,
   Video,
   X,
 } from "lucide-react";
@@ -43,6 +46,43 @@ import {
   useSendMessage,
 } from "../hooks/useQueries";
 import { formatRelativeTime } from "../utils/helpers";
+
+// ─── Sticker / GIF / Location data ───────────────────────────────────────────
+
+const STICKER_CATEGORIES: { label: string; emoji: string; items: string[] }[] =
+  [
+    {
+      label: "Smileys",
+      emoji: "😀",
+      items: ["😀", "😂", "🥹", "😍", "🤩", "😎", "🥺", "😭", "😤", "🙏"],
+    },
+    {
+      label: "Hearts",
+      emoji: "❤️",
+      items: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💖", "💗"],
+    },
+    {
+      label: "Celebrations",
+      emoji: "🎉",
+      items: ["🎉", "🎊", "🎈", "🥳", "🎂", "🎁", "✨", "🌟", "🏆", "🎯"],
+    },
+    {
+      label: "Animals",
+      emoji: "🐶",
+      items: ["🐶", "🐱", "🦊", "🐼", "🐨", "🦁", "🐸", "🦋", "🌸", "🌈"],
+    },
+  ];
+
+const GIF_URLS = [
+  "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+  "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+  "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif",
+  "https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif",
+  "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif",
+  "https://media.giphy.com/media/xT9IgG50Lg7russbFK/giphy.gif",
+  "https://media.giphy.com/media/3oz8xRF0v7OWAFP0Co/giphy.gif",
+  "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif",
+];
 
 // ─── Note types ───────────────────────────────────────────────────────────────
 
@@ -367,6 +407,91 @@ function MessageBubble({
   message: Message;
   isOwn: boolean;
 }) {
+  const text = message.text;
+
+  // Sticker
+  if (text.startsWith("__sticker__")) {
+    const emoji = text.slice("__sticker__".length);
+    return (
+      <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+        <div className="flex flex-col items-center">
+          <span className="text-5xl leading-none select-none">{emoji}</span>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {formatRelativeTime(message.createdAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // GIF
+  if (text.startsWith("__gif__")) {
+    const url = text.slice("__gif__".length);
+    return (
+      <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+        <div
+          className={cn(
+            "max-w-[75%] rounded-2xl overflow-hidden",
+            isOwn ? "rounded-br-sm" : "rounded-bl-sm",
+          )}
+        >
+          <img
+            src={url}
+            alt="GIF"
+            className="max-w-[200px] rounded-xl"
+            loading="lazy"
+          />
+          <p
+            className={cn(
+              "text-[10px] mt-1 px-1",
+              isOwn ? "text-white/60 text-right" : "text-muted-foreground",
+            )}
+          >
+            {formatRelativeTime(message.createdAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Location
+  if (text.startsWith("__location__")) {
+    const coords = text.slice("__location__".length);
+    const [lat, lng] = coords.split(",");
+    return (
+      <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+        <div
+          className={cn(
+            "max-w-[75%] px-3 py-2.5 rounded-2xl text-sm",
+            isOwn
+              ? "gradient-bg text-white rounded-br-sm"
+              : "bg-secondary text-foreground rounded-bl-sm",
+          )}
+        >
+          <a
+            href={`https://maps.google.com/?q=${lat},${lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
+            <MapPin size={16} className="shrink-0" />
+            <span className="text-sm font-medium">Shared a location</span>
+            <ExternalLink size={12} className="shrink-0 opacity-60" />
+          </a>
+          <p
+            className={cn(
+              "text-[10px] mt-1",
+              isOwn ? "text-white/60" : "text-muted-foreground",
+            )}
+          >
+            {formatRelativeTime(message.createdAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular text
   return (
     <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
       <div
@@ -391,6 +516,120 @@ function MessageBubble({
   );
 }
 
+function StickerSheet({
+  open,
+  onOpenChange,
+  onSend,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSend: (sticker: string) => void;
+}) {
+  const [activeCategory, setActiveCategory] = useState(0);
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl border-border pb-safe max-h-[50vh]"
+        style={{ background: "oklch(0.14 0.008 260)" }}
+        data-ocid="chat.sticker.sheet"
+      >
+        <SheetHeader className="pb-3">
+          <SheetTitle className="font-display text-base">Stickers</SheetTitle>
+        </SheetHeader>
+        {/* Category tabs */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
+          {STICKER_CATEGORIES.map((cat, idx) => (
+            <button
+              key={cat.label}
+              type="button"
+              onClick={() => setActiveCategory(idx)}
+              className={cn(
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1",
+                activeCategory === idx
+                  ? "text-white"
+                  : "bg-secondary/80 text-muted-foreground hover:text-foreground",
+              )}
+              style={
+                activeCategory === idx
+                  ? {
+                      background:
+                        "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                    }
+                  : undefined
+              }
+            >
+              <span>{cat.emoji}</span>
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        {/* Sticker grid */}
+        <div className="grid grid-cols-5 gap-2 mt-2 overflow-y-auto max-h-32">
+          {STICKER_CATEGORIES[activeCategory].items.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => {
+                onSend(emoji);
+                onOpenChange(false);
+              }}
+              className="flex items-center justify-center text-3xl h-12 rounded-xl hover:bg-secondary/80 transition-colors active:scale-95"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function GifSheet({
+  open,
+  onOpenChange,
+  onSend,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSend: (url: string) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl border-border pb-safe max-h-[55vh]"
+        style={{ background: "oklch(0.14 0.008 260)" }}
+        data-ocid="chat.gif.sheet"
+      >
+        <SheetHeader className="pb-3">
+          <SheetTitle className="font-display text-base">GIFs</SheetTitle>
+        </SheetHeader>
+        <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-64">
+          {GIF_URLS.map((url) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => {
+                onSend(url);
+                onOpenChange(false);
+              }}
+              className="rounded-xl overflow-hidden aspect-video hover:opacity-80 transition-opacity active:scale-95"
+            >
+              <img
+                src={url}
+                alt="GIF"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function ChatView({
   userId,
   onBack,
@@ -405,6 +644,8 @@ function ChatView({
   const [text, setText] = useState("");
   const [audioCallOpen, setAudioCallOpen] = useState(false);
   const [videoCallOpen, setVideoCallOpen] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const currentPrincipal = identity?.getPrincipal().toString();
@@ -421,6 +662,42 @@ function ChatView({
     await sendMessage.mutateAsync({ receiverId: userId, text: msg });
   };
 
+  const handleSendSticker = async (emoji: string) => {
+    await sendMessage.mutateAsync({
+      receiverId: userId,
+      text: `__sticker__${emoji}`,
+    });
+  };
+
+  const handleSendGif = async (url: string) => {
+    await sendMessage.mutateAsync({
+      receiverId: userId,
+      text: `__gif__${url}`,
+    });
+  };
+
+  const handleSendLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported");
+      return;
+    }
+    const loadingToastId = toast.loading("Getting location...");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        toast.dismiss(loadingToastId);
+        const { latitude: lat, longitude: lng } = pos.coords;
+        await sendMessage.mutateAsync({
+          receiverId: userId,
+          text: `__location__${lat},${lng}`,
+        });
+      },
+      () => {
+        toast.dismiss(loadingToastId);
+        toast.error("Location access denied");
+      },
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Audio + Video call sheets */}
@@ -433,6 +710,17 @@ function ChatView({
         open={videoCallOpen}
         onOpenChange={setVideoCallOpen}
         userId={userId}
+      />
+      {/* Sticker + GIF sheets */}
+      <StickerSheet
+        open={stickerOpen}
+        onOpenChange={setStickerOpen}
+        onSend={handleSendSticker}
+      />
+      <GifSheet
+        open={gifOpen}
+        onOpenChange={setGifOpen}
+        onSend={handleSendGif}
       />
 
       {/* Chat header */}
@@ -529,7 +817,38 @@ function ChatView({
       </ScrollArea>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-border flex gap-2">
+      <div className="px-3 py-3 border-t border-border flex items-center gap-1.5">
+        {/* Sticker button */}
+        <button
+          type="button"
+          onClick={() => setStickerOpen(true)}
+          data-ocid="chat.sticker.button"
+          className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          aria-label="Stickers"
+        >
+          <Smile size={18} />
+        </button>
+        {/* GIF button */}
+        <button
+          type="button"
+          onClick={() => setGifOpen(true)}
+          data-ocid="chat.gif.button"
+          className="shrink-0 h-9 px-2 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-bold tracking-tight border border-border/50"
+          aria-label="GIF"
+        >
+          GIF
+        </button>
+        {/* Location button */}
+        <button
+          type="button"
+          onClick={handleSendLocation}
+          data-ocid="chat.location.button"
+          className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          aria-label="Share location"
+        >
+          <MapPin size={18} />
+        </button>
+
         <Input
           data-ocid="messages.input"
           value={text}
