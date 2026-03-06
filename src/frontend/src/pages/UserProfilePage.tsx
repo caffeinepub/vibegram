@@ -181,7 +181,7 @@ export function UserProfilePage() {
                 <h2 className="text-lg font-bold font-display leading-tight">
                   {profile?.displayName || "Unknown User"}
                 </h2>
-                {profile?.username === "vibegram" && (
+                {profile?.username === "vibegrom" && (
                   <VerificationBadge size="md" />
                 )}
               </div>

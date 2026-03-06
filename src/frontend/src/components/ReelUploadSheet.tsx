@@ -110,6 +110,12 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
       let reelCaption = caption.trim()
         ? `__reel__${caption.trim()}`
         : "__reel__";
+
+      // Prepend song info if selected
+      if (selectedSong) {
+        reelCaption = `__song__${selectedSong.title} - ${selectedSong.artist}__${reelCaption}`;
+      }
+
       if (collabUser.trim()) {
         const cu = collabUser.trim().startsWith("@")
           ? collabUser.trim()

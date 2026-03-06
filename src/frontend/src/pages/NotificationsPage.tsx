@@ -176,7 +176,7 @@ export function NotificationsPage() {
           </motion.div>
         ) : (
           <div>
-            {/* VibeGram welcome banner */}
+            {/* VibeGrom welcome banner */}
             <div
               className="mx-4 mt-3 mb-1 rounded-2xl overflow-hidden"
               style={{
@@ -188,13 +188,13 @@ export function NotificationsPage() {
               <div className="flex items-center gap-3 p-3.5">
                 <img
                   src="/assets/uploads/InShot_20260306_023848346-1.png"
-                  alt="VibeGram"
+                  alt="VibeGrom"
                   className="w-10 h-10 rounded-xl object-cover shrink-0"
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">VibeGram</p>
+                  <p className="text-sm font-semibold text-white">VibeGrom</p>
                   <p className="text-xs text-white/70 mt-0.5 leading-snug">
-                    Welcome to VibeGram 2.0! Now with Reels, Live, Stories &
+                    Welcome to VibeGrom 2.0! Now with Reels, Live, Stories &
                     more. 🎉
                   </p>
                 </div>

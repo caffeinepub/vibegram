@@ -45,7 +45,7 @@ export function CopyrightPage() {
         {/* Copyright text */}
         <div className="text-center space-y-2 mb-10">
           <h2 className="text-2xl font-bold font-display gradient-text">
-            © 2026 VibeGram
+            © 2026 VibeGrom
           </h2>
           <p className="text-base font-semibold text-foreground">
             All Rights Reserved.
@@ -62,7 +62,7 @@ export function CopyrightPage() {
           style={{ background: "oklch(0.07 0.005 270)" }}
         >
           <p className="text-sm text-muted-foreground leading-relaxed text-center">
-            All content, design, and code of VibeGram is protected by copyright
+            All content, design, and code of VibeGrom is protected by copyright
             law. Unauthorized reproduction, distribution, or modification of any
             part of this platform is strictly prohibited without prior written
             permission.
@@ -72,8 +72,8 @@ export function CopyrightPage() {
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-vibe-purple mt-1.5 shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                The VibeGram name, logo, and brand identity are trademarks of
-                VibeGram.
+                The VibeGrom name, logo, and brand identity are trademarks of
+                VibeGrom.
               </p>
             </div>
             <div className="flex items-start gap-2">

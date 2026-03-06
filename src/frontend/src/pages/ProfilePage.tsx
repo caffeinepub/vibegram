@@ -423,7 +423,7 @@ export function ProfilePage() {
 
   // Verification: check localStorage or known usernames
   const isVerified =
-    profile?.username === "vibegram" ||
+    profile?.username === "vibegrom" ||
     (principalStr
       ? !!localStorage.getItem(`vg_verified_${principalStr.toString()}`)
       : false);

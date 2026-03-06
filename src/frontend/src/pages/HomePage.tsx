@@ -58,7 +58,7 @@ export function HomePage() {
         }}
       >
         <h1 className="text-2xl font-bold font-display gradient-text">
-          VibeGram
+          VibeGrom
         </h1>
         <div className="flex items-center gap-1">
           {/* Messages */}

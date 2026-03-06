@@ -1,7 +1,13 @@
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -120,6 +126,40 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Google OAuth simulation
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googlePickerOpen, setGooglePickerOpen] = useState(false);
+
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    setTimeout(() => {
+      setGoogleLoading(false);
+      setGooglePickerOpen(true);
+    }, 1200);
+  };
+
+  const handleGoogleContinue = (email: string, name: string) => {
+    const googleUsername = email
+      .split("@")[0]
+      .replace(/[^a-z0-9_]/gi, "_")
+      .toLowerCase();
+    const safeUsername = `g_${googleUsername}`.slice(0, 20);
+    const googleAccount: VGAccount = {
+      username: safeUsername,
+      displayName: name,
+      password: "google_auto_2026",
+      email: email,
+    };
+    if (!findAccountByUsername(safeUsername)) {
+      saveAccount(googleAccount);
+    }
+    setSession(safeUsername);
+    login();
+    toast.success(`Welcome, ${name}!`);
+    setGooglePickerOpen(false);
+    if (mode === "create_account") navigate({ to: "/discover" });
+  };
+
   // Profile setup (after ICP login, if needsProfile)
   const [profileUsername, setProfileUsername] = useState("");
   const [profileDisplayName, setProfileDisplayName] = useState("");
@@ -211,7 +251,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
       setSession(newUsername);
       // Trigger ICP login for backend compatibility
       login();
-      toast.success(`Account created! Welcome to VibeGram, @${newUsername} 🎉`);
+      toast.success(`Account created! Welcome to VibeGrom, @${newUsername} 🎉`);
       // Navigate to discover people
       navigate({ to: "/discover" });
     } finally {
@@ -312,7 +352,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
         username: profileUsername,
         displayName: profileDisplayName,
       });
-      toast.success("Welcome to VibeGram! 🎉");
+      toast.success("Welcome to VibeGrom! 🎉");
     } catch (err: unknown) {
       const error = err as Error;
       toast.error(
@@ -358,7 +398,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
             transition={{ delay: 0.2, duration: 0.4 }}
             className="text-4xl font-bold font-display gradient-text"
           >
-            VibeGram
+            VibeGrom
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -669,6 +709,56 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                   />
                 </div>
 
+                {/* Continue with Google */}
+                <Button
+                  type="button"
+                  data-ocid="auth.google.button"
+                  onClick={handleGoogleLogin}
+                  disabled={googleLoading}
+                  className="w-full h-11 font-semibold text-sm border mb-2 flex items-center justify-center gap-2"
+                  style={{
+                    background: "oklch(0.97 0.005 265)",
+                    color: "oklch(0.28 0.015 265)",
+                    borderColor: "oklch(0.82 0.01 265)",
+                  }}
+                >
+                  {googleLoading ? (
+                    <Loader2
+                      size={16}
+                      className="animate-spin"
+                      style={{ color: "oklch(0.55 0.2 25)" }}
+                    />
+                  ) : (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 48 48"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-label="Google"
+                    >
+                      <title>Google</title>
+                      <path
+                        d="M43.611 20.083H42V20H24v8h11.303C33.868 32.643 29.332 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5 12.954 4.5 4 13.454 4 24.5S12.954 44.5 24 44.5c10.761 0 19.5-8.739 19.5-19.5 0-1.307-.13-2.584-.389-3.817z"
+                        fill="#FFC107"
+                      />
+                      <path
+                        d="M6.306 14.691L12.876 19.51C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5c-7.736 0-14.43 4.42-17.694 10.191z"
+                        fill="#FF3D00"
+                      />
+                      <path
+                        d="M24 44.5c5.166 0 9.86-1.977 13.409-5.192L31.219 34.63C29.211 36.065 26.715 37 24 37c-5.311 0-9.832-3.337-11.288-7.938l-6.522 5.025C9.505 39.998 16.227 44.5 24 44.5z"
+                        fill="#4CAF50"
+                      />
+                      <path
+                        d="M43.611 20.083H42V20H24v8h11.303c-.709 2.054-2.034 3.827-3.715 5.119l.002-.001 6.19 5.678C37.548 38.17 43.5 34 43.5 24.5c0-1.307-.13-2.584-.389-3.817z"
+                        fill="#1976D2"
+                      />
+                    </svg>
+                  )}
+                  Continue with Google
+                </Button>
+
                 {/* Create new account */}
                 <Button
                   type="button"
@@ -693,7 +783,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 className="text-center text-xs mt-5 px-4"
                 style={{ color: "oklch(0.45 0.03 265)" }}
               >
-                By continuing, you agree to VibeGram's{" "}
+                By continuing, you agree to VibeGrom's{" "}
                 <span
                   className="underline cursor-pointer"
                   style={{ color: "oklch(0.6 0.04 265)" }}
@@ -1242,6 +1332,74 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                     ) : null}
                     Sign Up
                   </Button>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <div
+                      className="flex-1 h-px"
+                      style={{ background: "oklch(0.25 0.02 280)" }}
+                    />
+                    <span
+                      className="text-xs font-semibold tracking-widest"
+                      style={{ color: "oklch(0.45 0.03 265)" }}
+                    >
+                      OR
+                    </span>
+                    <div
+                      className="flex-1 h-px"
+                      style={{ background: "oklch(0.25 0.02 280)" }}
+                    />
+                  </div>
+
+                  {/* Continue with Google */}
+                  <Button
+                    type="button"
+                    data-ocid="auth.google.button"
+                    onClick={handleGoogleLogin}
+                    disabled={googleLoading}
+                    className="w-full h-11 font-semibold text-sm border flex items-center justify-center gap-2"
+                    style={{
+                      background: "oklch(0.97 0.005 265)",
+                      color: "oklch(0.28 0.015 265)",
+                      borderColor: "oklch(0.82 0.01 265)",
+                    }}
+                  >
+                    {googleLoading ? (
+                      <Loader2
+                        size={16}
+                        className="animate-spin"
+                        style={{ color: "oklch(0.55 0.2 25)" }}
+                      />
+                    ) : (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 48 48"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-label="Google"
+                      >
+                        <title>Google</title>
+                        <path
+                          d="M43.611 20.083H42V20H24v8h11.303C33.868 32.643 29.332 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5 12.954 4.5 4 13.454 4 24.5S12.954 44.5 24 44.5c10.761 0 19.5-8.739 19.5-19.5 0-1.307-.13-2.584-.389-3.817z"
+                          fill="#FFC107"
+                        />
+                        <path
+                          d="M6.306 14.691L12.876 19.51C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5c-7.736 0-14.43 4.42-17.694 10.191z"
+                          fill="#FF3D00"
+                        />
+                        <path
+                          d="M24 44.5c5.166 0 9.86-1.977 13.409-5.192L31.219 34.63C29.211 36.065 26.715 37 24 37c-5.311 0-9.832-3.337-11.288-7.938l-6.522 5.025C9.505 39.998 16.227 44.5 24 44.5z"
+                          fill="#4CAF50"
+                        />
+                        <path
+                          d="M43.611 20.083H42V20H24v8h11.303c-.709 2.054-2.034 3.827-3.715 5.119l.002-.001 6.19 5.678C37.548 38.17 43.5 34 43.5 24.5c0-1.307-.13-2.584-.389-3.817z"
+                          fill="#1976D2"
+                        />
+                      </svg>
+                    )}
+                    Continue with Google
+                  </Button>
                 </form>
               </div>
 
@@ -1275,7 +1433,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 className="text-center text-xs mt-4 px-4"
                 style={{ color: "oklch(0.45 0.03 265)" }}
               >
-                By signing up, you agree to VibeGram's{" "}
+                By signing up, you agree to VibeGrom's{" "}
                 <span
                   className="underline cursor-pointer"
                   style={{ color: "oklch(0.6 0.04 265)" }}
@@ -1294,6 +1452,174 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Google Account Picker Dialog */}
+      <Dialog open={googlePickerOpen} onOpenChange={setGooglePickerOpen}>
+        <DialogContent
+          className="p-0 overflow-hidden max-w-sm border-0 rounded-2xl"
+          style={{ background: "oklch(0.98 0.005 265)" }}
+          data-ocid="auth.google.dialog"
+        >
+          {/* Google header */}
+          <div
+            className="px-5 pt-5 pb-4 border-b"
+            style={{ borderColor: "oklch(0.88 0.01 265)" }}
+          >
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-label="Google"
+                  >
+                    <title>Google</title>
+                    <path
+                      d="M43.611 20.083H42V20H24v8h11.303C33.868 32.643 29.332 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5 12.954 4.5 4 13.454 4 24.5S12.954 44.5 24 44.5c10.761 0 19.5-8.739 19.5-19.5 0-1.307-.13-2.584-.389-3.817z"
+                      fill="#FFC107"
+                    />
+                    <path
+                      d="M6.306 14.691L12.876 19.51C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039L37.424 9.576C34.046 6.481 29.268 4.5 24 4.5c-7.736 0-14.43 4.42-17.694 10.191z"
+                      fill="#FF3D00"
+                    />
+                    <path
+                      d="M24 44.5c5.166 0 9.86-1.977 13.409-5.192L31.219 34.63C29.211 36.065 26.715 37 24 37c-5.311 0-9.832-3.337-11.288-7.938l-6.522 5.025C9.505 39.998 16.227 44.5 24 44.5z"
+                      fill="#4CAF50"
+                    />
+                    <path
+                      d="M43.611 20.083H42V20H24v8h11.303c-.709 2.054-2.034 3.827-3.715 5.119l.002-.001 6.19 5.678C37.548 38.17 43.5 34 43.5 24.5c0-1.307-.13-2.584-.389-3.817z"
+                      fill="#1976D2"
+                    />
+                  </svg>
+                  <DialogTitle
+                    className="font-bold text-base"
+                    style={{ color: "oklch(0.25 0.015 265)" }}
+                  >
+                    Choose an account
+                  </DialogTitle>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGooglePickerOpen(false)}
+                  className="transition-colors"
+                  style={{ color: "oklch(0.5 0.03 265)" }}
+                  aria-label="Close"
+                  data-ocid="auth.google.close_button"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: "oklch(0.5 0.03 265)" }}
+              >
+                to continue to VibeGrom
+              </p>
+            </DialogHeader>
+          </div>
+
+          {/* Google accounts list */}
+          <div className="p-3 space-y-1">
+            {[
+              {
+                name: "Spandan Kumar",
+                email: "spandan@gmail.com",
+                initials: "S",
+                color: "oklch(0.55 0.22 25)",
+              },
+              {
+                name: "Demo User",
+                email: "demo.user@gmail.com",
+                initials: "D",
+                color: "oklch(0.55 0.2 250)",
+              },
+              {
+                name: "VibeGrom User",
+                email: "vibegrom.user@gmail.com",
+                initials: "V",
+                color: "oklch(0.5 0.22 295)",
+              },
+            ].map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                data-ocid="auth.google.account.button"
+                onClick={() => handleGoogleContinue(acc.email, acc.name)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left hover:bg-black/5"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0"
+                  style={{ background: acc.color }}
+                >
+                  {acc.initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-semibold text-sm"
+                    style={{ color: "oklch(0.25 0.015 265)" }}
+                  >
+                    {acc.name}
+                  </p>
+                  <p
+                    className="text-xs truncate"
+                    style={{ color: "oklch(0.5 0.03 265)" }}
+                  >
+                    {acc.email}
+                  </p>
+                </div>
+              </button>
+            ))}
+
+            <div
+              className="border-t pt-2 mt-1"
+              style={{ borderColor: "oklch(0.88 0.01 265)" }}
+            >
+              <button
+                type="button"
+                data-ocid="auth.google.add_account.button"
+                onClick={() =>
+                  toast.info(
+                    "Sign in with your Google account in a real browser",
+                  )
+                }
+                className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left hover:bg-black/5"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2"
+                  style={{
+                    borderColor: "oklch(0.7 0.03 265)",
+                    color: "oklch(0.45 0.03 265)",
+                  }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-label="Add account"
+                  >
+                    <title>Add account</title>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                </div>
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "oklch(0.35 0.02 265)" }}
+                >
+                  Use another account
+                </p>
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

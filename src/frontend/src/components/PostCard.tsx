@@ -166,7 +166,7 @@ export function PostCard({
   }, [post.id]);
 
   const handleReport = useCallback(() => {
-    toast.success("Post reported. Thank you for keeping VibeGram safe.");
+    toast.success("Post reported. Thank you for keeping VibeGrom safe.");
   }, []);
 
   const handleBlockUser = useCallback(() => {

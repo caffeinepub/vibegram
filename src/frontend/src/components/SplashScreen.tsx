@@ -47,7 +47,7 @@ export function SplashScreen() {
               backgroundClip: "text",
             }}
           >
-            VibeGram
+            VibeGrom
           </h1>
           <p className="text-sm text-white/50 mt-1.5 font-body">
             Share your vibe with the world

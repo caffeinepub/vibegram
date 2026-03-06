@@ -198,6 +198,10 @@ export function SettingsPage() {
   const handleThemeToggle = (dark: boolean) => {
     setIsDark(dark);
     localStorage.setItem(VG_THEME_KEY, dark ? "dark" : "light");
+    document.documentElement.setAttribute(
+      "data-theme",
+      dark ? "dark" : "light",
+    );
     toast.success(dark ? "Dark mode enabled" : "Light mode enabled");
   };
 
@@ -387,7 +391,7 @@ export function SettingsPage() {
     },
     {
       q: "How do I contact support?",
-      a: "Send an email to support@vibegram.app",
+      a: "Send an email to support@vibegrom.app",
     },
   ];
 
@@ -704,7 +708,7 @@ export function SettingsPage() {
         {/* Footer */}
         <div className="text-center py-6 px-4 space-y-1">
           <p className="text-xs text-muted-foreground font-medium">
-            © 2026 VibeGram. All Rights Reserved.
+            © 2026 VibeGrom. All Rights Reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Developed by{" "}

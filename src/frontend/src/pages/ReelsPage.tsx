@@ -10,12 +10,14 @@ import {
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  Check,
   ChevronUp,
   Download,
   Heart,
   Loader2,
   MapPin,
   MessageCircle,
+  Music2,
   Pause,
   Play,
   Send,
@@ -23,12 +25,14 @@ import {
   UserPlus,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Comment, Post } from "../backend.d";
 import { AvatarWithRing } from "../components/AvatarWithRing";
+import { ALL_SONGS } from "../components/CreativeToolbar";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useCreateComment,
@@ -48,12 +52,22 @@ function parseReelCaption(raw: string) {
   let collabUser = "";
   let location = "";
   let taggedUsers: string[] = [];
+  let songTitle = "";
+  let songArtist = "";
 
   // Handle both __collab__ and __reelcollab__ prefixes
   const collabMatch = caption.match(/^__(?:reel)?collab__(@[\w]+)__/);
   if (collabMatch) {
     collabUser = collabMatch[1];
     caption = caption.slice(collabMatch[0].length);
+  }
+
+  // Extract song prefix: __song__Title - Artist__
+  const songMatch = caption.match(/__song__(.*?) - (.*?)__/);
+  if (songMatch) {
+    songTitle = songMatch[1];
+    songArtist = songMatch[2];
+    caption = caption.replace(songMatch[0], "");
   }
 
   const locMatch = caption.match(/__loc__(.*?)__/);
@@ -71,7 +85,14 @@ function parseReelCaption(raw: string) {
   if (caption.startsWith("__reel__")) caption = caption.slice(8);
   if (caption === "__story__") caption = "";
 
-  return { caption: caption.trim(), collabUser, location, taggedUsers };
+  return {
+    caption: caption.trim(),
+    collabUser,
+    location,
+    taggedUsers,
+    songTitle,
+    songArtist,
+  };
 }
 
 // ─── Comment Item ─────────────────────────────────────────────────────────────
@@ -127,6 +148,12 @@ function ReelCard({ post, isActive }: ReelCardProps) {
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [songPickerOpen, setSongPickerOpen] = useState(false);
+  const [songSearch, setSongSearch] = useState("");
+  const [pickedSong, setPickedSong] = useState<{
+    title: string;
+    artist: string;
+  } | null>(null);
 
   const currentPrincipal = identity?.getPrincipal();
   const isLiked = currentPrincipal
@@ -250,7 +277,25 @@ function ReelCard({ post, isActive }: ReelCardProps) {
     collabUser,
     location,
     taggedUsers,
+    songTitle: captionSongTitle,
+    songArtist: captionSongArtist,
   } = parseReelCaption(post.caption || "");
+
+  // Resolved song: picked by user in viewer OR parsed from caption
+  const activeSong =
+    pickedSong ??
+    (captionSongTitle
+      ? { title: captionSongTitle, artist: captionSongArtist }
+      : null);
+
+  // Filtered songs for picker
+  const filteredPickerSongs = ALL_SONGS.filter((s) => {
+    const q = songSearch.toLowerCase();
+    if (!q) return true;
+    return (
+      s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
+    );
+  });
 
   const handleDownload = useCallback(async () => {
     if (!mediaUrl) {
@@ -263,7 +308,7 @@ function ReelCard({ post, isActive }: ReelCardProps) {
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
-      a.download = `vibegram_reel_${post.id.toString()}.mp4`;
+      a.download = `vibegrom_reel_${post.id.toString()}.mp4`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -481,32 +526,57 @@ function ReelCard({ post, isActive }: ReelCardProps) {
 
       {/* Bottom author info + caption */}
       <div className="absolute bottom-24 left-4 right-20 z-20 space-y-2">
-        <button
-          type="button"
-          onClick={() => navigate({ to: `/user/${post.authorId.toString()}` })}
-          className="flex items-center gap-2"
-          aria-label="View author profile"
-        >
-          {/* Spinning music disc aesthetic */}
-          <span
-            className="text-sm animate-spin-disc select-none"
-            aria-hidden="true"
+        <div className="flex items-center gap-2">
+          {/* Tappable music disc — opens song picker */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSongPickerOpen(true);
+            }}
+            data-ocid="reel.song.button"
+            className="text-sm animate-spin-disc select-none focus:outline-none"
+            aria-label="Pick a song"
           >
             🎵
-          </span>
-          <span className="text-white font-bold font-display text-sm drop-shadow">
-            @{author?.username || "..."}
-            {collabUser && (
-              <>
-                {" "}
-                <span className="text-white/60">×</span>{" "}
-                <span style={{ color: "oklch(0.75 0.22 295)" }}>
-                  {collabUser}
-                </span>
-              </>
-            )}
-          </span>
-        </button>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate({ to: `/user/${post.authorId.toString()}` })
+            }
+            className="flex items-center gap-1"
+            aria-label="View author profile"
+          >
+            <span className="text-white font-bold font-display text-sm drop-shadow">
+              @{author?.username || "..."}
+              {collabUser && (
+                <>
+                  {" "}
+                  <span className="text-white/60">×</span>{" "}
+                  <span style={{ color: "oklch(0.75 0.22 295)" }}>
+                    {collabUser}
+                  </span>
+                </>
+              )}
+            </span>
+          </button>
+        </div>
+
+        {/* Song marquee */}
+        {activeSong && (
+          <div className="flex items-center gap-1.5 overflow-hidden max-w-[200px]">
+            <Music2 size={11} className="text-white/70 shrink-0" />
+            <div className="overflow-hidden">
+              <p
+                className="text-white/80 text-xs whitespace-nowrap"
+                style={{ animation: "marquee 8s linear infinite" }}
+              >
+                ♪ {activeSong.title} — {activeSong.artist}
+              </p>
+            </div>
+          </div>
+        )}
         {location && (
           <div className="flex items-center gap-1 text-white/70 text-xs">
             <MapPin size={11} />
@@ -531,6 +601,109 @@ function ReelCard({ post, isActive }: ReelCardProps) {
           </p>
         )}
       </div>
+
+      {/* Song picker bottom sheet */}
+      <Sheet open={songPickerOpen} onOpenChange={setSongPickerOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl border-t border-white/10 p-0"
+          style={{ height: "60vh", background: "oklch(0.1 0.015 265)" }}
+          data-ocid="reel.song_picker.sheet"
+        >
+          <SheetHeader className="px-4 py-3 border-b border-white/10 flex-row items-center justify-between space-y-0">
+            <SheetTitle className="text-white text-base font-semibold flex items-center gap-2">
+              <Music2 size={16} style={{ color: "oklch(0.75 0.22 295)" }} />
+              Pick a Song
+            </SheetTitle>
+            <button
+              type="button"
+              onClick={() => setSongPickerOpen(false)}
+              className="text-white/50 hover:text-white transition-colors"
+              aria-label="Close song picker"
+              data-ocid="reel.song_picker.close_button"
+            >
+              <X size={18} />
+            </button>
+          </SheetHeader>
+
+          {/* Search */}
+          <div className="px-4 py-2.5 border-b border-white/10">
+            <Input
+              data-ocid="reel.song_picker.search_input"
+              value={songSearch}
+              onChange={(e) => setSongSearch(e.target.value)}
+              placeholder="Search songs or artists..."
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 text-sm h-9"
+            />
+          </div>
+
+          <ScrollArea style={{ height: "calc(60vh - 130px)" }}>
+            {/* Remove song option */}
+            {pickedSong && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPickedSong(null);
+                  setSongPickerOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5"
+                data-ocid="reel.song_picker.remove_button"
+              >
+                <div className="w-9 h-9 rounded-full flex items-center justify-center bg-red-500/20">
+                  <X size={14} className="text-red-400" />
+                </div>
+                <span className="text-red-400 text-sm font-medium">
+                  Remove Song
+                </span>
+              </button>
+            )}
+
+            {filteredPickerSongs.map((song, i) => {
+              const isSelected =
+                pickedSong?.title === song.title &&
+                pickedSong?.artist === song.artist;
+              return (
+                <button
+                  // biome-ignore lint/suspicious/noArrayIndexKey: stable song list
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setPickedSong(
+                      isSelected
+                        ? null
+                        : { title: song.title, artist: song.artist },
+                    );
+                    setSongPickerOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/5"
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm"
+                    style={{ background: "oklch(0.62 0.22 295 / 0.25)" }}
+                  >
+                    🎵
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold truncate">
+                      {song.title}
+                    </p>
+                    <p className="text-white/50 text-xs truncate">
+                      {song.artist}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <Check
+                      size={16}
+                      style={{ color: "oklch(0.75 0.22 295)" }}
+                      className="shrink-0"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* Comments bottom sheet */}
       <Sheet open={commentsOpen} onOpenChange={setCommentsOpen}>
