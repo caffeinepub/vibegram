@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { Link, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 export interface Overlay {
@@ -120,7 +120,23 @@ function OverlayItem({
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => !isDragging && setShowDelete(false)}
     >
-      {overlay.type === "sticker" ? (
+      {overlay.type === "sticker" && overlay.content.startsWith("🔗 ") ? (
+        /* Social link pill */
+        <div
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full select-none"
+          style={{
+            background: "oklch(0.45 0.18 250)",
+            cursor: isDragging ? "grabbing" : "grab",
+            boxShadow: "0 2px 12px oklch(0.45 0.18 250 / 0.5)",
+            border: "1px solid oklch(0.6 0.15 250 / 0.6)",
+          }}
+        >
+          <Link size={12} className="text-white shrink-0" />
+          <span className="text-white text-xs font-semibold max-w-[140px] truncate">
+            {overlay.content.slice(3)}
+          </span>
+        </div>
+      ) : overlay.type === "sticker" ? (
         <span
           className="text-4xl select-none"
           style={{ cursor: isDragging ? "grabbing" : "grab" }}

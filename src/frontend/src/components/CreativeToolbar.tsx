@@ -4,7 +4,11 @@ import {
   AtSign,
   Check,
   Hash,
+  Link,
   Music2,
+  Pause,
+  Play,
+  Search,
   Sliders,
   Smile,
   Type,
@@ -31,6 +35,32 @@ const FILTERS = [
   {
     name: "Sunset",
     style: "sepia(0.5) saturate(1.6) brightness(1.1) hue-rotate(-10deg)",
+  },
+  // Instagram-style filters
+  { name: "Lux", style: "contrast(1.33) brightness(1.1) saturate(1.6)" },
+  { name: "Chrome", style: "saturate(0) contrast(1.2) brightness(1.3)" },
+  { name: "Inkwell", style: "grayscale(1) brightness(1.1) contrast(1.05)" },
+  {
+    name: "Clarendon",
+    style: "contrast(1.2) saturate(1.35) brightness(1.1)",
+  },
+  {
+    name: "Gingham",
+    style: "brightness(1.05) hue-rotate(-10deg) saturate(0.9)",
+  },
+  {
+    name: "Moon",
+    style: "grayscale(1) contrast(1.1) brightness(1.1) sepia(0.1)",
+  },
+  {
+    name: "Reyes",
+    style: "sepia(0.22) brightness(1.1) contrast(0.85) saturate(0.75)",
+  },
+  { name: "Juno", style: "saturate(1.4) hue-rotate(-5deg) contrast(1.1)" },
+  { name: "Slumber", style: "saturate(0.66) brightness(1.05) sepia(0.4)" },
+  {
+    name: "Crema",
+    style: "sepia(0.5) contrast(0.9) brightness(1.25) saturate(0.9)",
   },
 ] as const;
 
@@ -117,6 +147,7 @@ const STICKER_CATEGORIES = [
   },
   { id: "mention", icon: "@", label: "@Mention", special: true, emojis: [] },
   { id: "hashtag", icon: "#", label: "#Hashtag", special: true, emojis: [] },
+  { id: "link", icon: "link", label: "Social Link", special: true, emojis: [] },
 ];
 
 const TEXT_STYLES = ["Normal", "Bold", "Neon", "Shadow", "Outline"] as const;
@@ -171,11 +202,17 @@ export const ALL_SONGS: Song[] = [
   { title: "Ghungroo", artist: "Arijit Singh", genre: "Bollywood" },
   { title: "Dil Chahta Hai", artist: "Shankar Mahadevan", genre: "Bollywood" },
   { title: "Tera Yaar Hoon Main", artist: "Arijit Singh", genre: "Bollywood" },
+  { title: "Tere Bina", artist: "Guru Randhawa", genre: "Bollywood" },
+  { title: "Pasoori", artist: "Ali Sethi & Shae Gill", genre: "Bollywood" },
+  { title: "Kahani", artist: "Ritviz", genre: "Bollywood" },
+  { title: "Kalank", artist: "Arijit Singh", genre: "Bollywood" },
   // R&B
   { title: "Essence", artist: "Wizkid ft. Tems", genre: "R&B" },
   { title: "Leave The Door Open", artist: "Bruno Mars", genre: "R&B" },
   { title: "Mood", artist: "24kGoldn", genre: "R&B" },
   { title: "Drivers License", artist: "Olivia Rodrigo", genre: "R&B" },
+  { title: "Peaches", artist: "Justin Bieber ft. Daniel Caesar", genre: "R&B" },
+  { title: "MONTERO", artist: "Lil Nas X", genre: "R&B" },
   // EDM
   { title: "Blinding Lights", artist: "The Weeknd", genre: "EDM" },
   {
@@ -186,6 +223,9 @@ export const ALL_SONGS: Song[] = [
   { title: "Titanium", artist: "David Guetta", genre: "EDM" },
   { title: "Lean On", artist: "Major Lazer", genre: "EDM" },
   { title: "Closer", artist: "The Chainsmokers", genre: "EDM" },
+  { title: "Animals", artist: "Martin Garrix", genre: "EDM" },
+  { title: "Levels", artist: "Avicii", genre: "EDM" },
+  { title: "Wake Me Up", artist: "Avicii", genre: "EDM" },
 ];
 
 const SONG_GENRES: SongGenre[] = [
@@ -206,6 +246,28 @@ const TABS: { id: TabId; icon: React.ReactNode; label: string }[] = [
   { id: "music", icon: <Music2 size={16} />, label: "Music" },
 ];
 
+/** Play a short 440Hz beep via Web Audio API for simulated preview */
+function playBeep(durationMs = 600) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + durationMs / 1000,
+    );
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + durationMs / 1000);
+    setTimeout(() => ctx.close(), durationMs + 100);
+  } catch {
+    // Silently fail if AudioContext is unavailable
+  }
+}
+
 export function CreativeToolbar({
   onFilterSelect,
   onStickerAdd,
@@ -221,7 +283,33 @@ export function CreativeToolbar({
   const [textColor, setTextColor] = useState("#ffffff");
   const [mentionInput, setMentionInput] = useState("");
   const [hashtagInput, setHashtagInput] = useState("");
+  const [linkInput, setLinkInput] = useState("");
   const [musicGenre, setMusicGenre] = useState<SongGenre>("All");
+  const [musicSearch, setMusicSearch] = useState("");
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+
+  const handlePlayPause = (key: string) => {
+    if (playingKey === key) {
+      setPlayingKey(null);
+    } else {
+      setPlayingKey(key);
+      playBeep(600);
+      setTimeout(
+        () => setPlayingKey((curr) => (curr === key ? null : curr)),
+        3000,
+      );
+    }
+  };
+
+  const filteredSongs = ALL_SONGS.filter((s) => {
+    const matchesGenre = musicGenre === "All" || s.genre === musicGenre;
+    const q = musicSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      s.title.toLowerCase().includes(q) ||
+      s.artist.toLowerCase().includes(q);
+    return matchesGenre && matchesSearch;
+  });
 
   return (
     <div
@@ -325,7 +413,11 @@ export function CreativeToolbar({
                   }
                 >
                   {cat.special ? (
-                    <span className="text-base leading-none">{cat.icon}</span>
+                    cat.id === "link" ? (
+                      <Link size={14} />
+                    ) : (
+                      <span className="text-base leading-none">{cat.icon}</span>
+                    )
                   ) : (
                     <span className="text-lg">{cat.icon}</span>
                   )}
@@ -418,6 +510,54 @@ export function CreativeToolbar({
                 >
                   Add
                 </button>
+              </div>
+            )}
+
+            {/* Special: Social Link input */}
+            {stickerCategory === "link" && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground px-0.5">
+                  Add a social link sticker to your story
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Link
+                      size={14}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      placeholder="https://..."
+                      className="bg-secondary border-border text-sm h-9 pl-7"
+                      data-ocid="creative.stickers.link.input"
+                      type="url"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && linkInput.trim()) {
+                          onStickerAdd(`🔗 ${linkInput.trim()}`);
+                          setLinkInput("");
+                        }
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!linkInput.trim()}
+                    onClick={() => {
+                      if (!linkInput.trim()) return;
+                      onStickerAdd(`🔗 ${linkInput.trim()}`);
+                      setLinkInput("");
+                    }}
+                    data-ocid="creative.stickers.link.button"
+                    className="h-9 px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             )}
 
@@ -536,89 +676,123 @@ export function CreativeToolbar({
         {/* MUSIC */}
         {activeTab === "music" && (
           <div className="space-y-2">
-            {/* Genre tabs */}
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
-              {SONG_GENRES.map((genre) => (
-                <button
-                  key={genre}
-                  type="button"
-                  onClick={() => setMusicGenre(genre)}
-                  data-ocid={`creative.music.${genre.toLowerCase().replace(/[^a-z0-9]/g, "_")}.tab`}
-                  className={cn(
-                    "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
-                    musicGenre === genre
-                      ? "text-white"
-                      : "bg-secondary/80 text-muted-foreground hover:text-foreground",
-                  )}
-                  style={
-                    musicGenre === genre
-                      ? {
-                          background:
-                            "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
-                        }
-                      : undefined
-                  }
-                >
-                  {genre}
-                </button>
-              ))}
+            {/* Search input */}
+            <div className="relative">
+              <Search
+                size={13}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                value={musicSearch}
+                onChange={(e) => setMusicSearch(e.target.value)}
+                placeholder="Search songs..."
+                className="bg-secondary border-border text-xs h-8 pl-7"
+                data-ocid="creative.music.search.input"
+              />
             </div>
 
+            {/* Genre tabs - hidden when searching */}
+            {!musicSearch && (
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                {SONG_GENRES.map((genre) => (
+                  <button
+                    key={genre}
+                    type="button"
+                    onClick={() => setMusicGenre(genre)}
+                    data-ocid={`creative.music.${genre.toLowerCase().replace(/[^a-z0-9]/g, "_")}.tab`}
+                    className={cn(
+                      "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
+                      musicGenre === genre
+                        ? "text-white"
+                        : "bg-secondary/80 text-muted-foreground hover:text-foreground",
+                    )}
+                    style={
+                      musicGenre === genre
+                        ? {
+                            background:
+                              "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                          }
+                        : undefined
+                    }
+                  >
+                    {genre}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-1 max-h-36 overflow-y-auto scrollbar-none">
-              {ALL_SONGS.filter(
-                (s) => musicGenre === "All" || s.genre === musicGenre,
-              ).map((song) => {
+              {filteredSongs.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No songs found
+                </p>
+              )}
+              {filteredSongs.map((song) => {
+                const key = `${song.title}-${song.artist}`;
                 const isSelected =
                   selectedSong?.title === song.title &&
                   selectedSong?.artist === song.artist;
+                const isPlaying = playingKey === key;
                 return (
-                  <button
-                    key={`${song.title}-${song.artist}`}
-                    type="button"
-                    onClick={() =>
-                      onMusicSelect(
-                        isSelected
-                          ? null
-                          : { title: song.title, artist: song.artist },
-                      )
-                    }
-                    data-ocid="creative.music.button"
+                  <div
+                    key={key}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all",
+                      "w-full flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all",
                       isSelected
                         ? "border border-primary/50"
                         : "bg-secondary/60 hover:bg-secondary",
                     )}
                     style={
                       isSelected
-                        ? {
-                            background: "oklch(0.62 0.22 295 / 0.15)",
-                          }
+                        ? { background: "oklch(0.62 0.22 295 / 0.15)" }
                         : undefined
                     }
                   >
-                    <div
-                      className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-white"
+                    {/* Play/Pause button */}
+                    <button
+                      type="button"
+                      onClick={() => handlePlayPause(key)}
+                      data-ocid="creative.music.play.button"
+                      className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white transition-all active:scale-90"
                       style={{
-                        background: isSelected
-                          ? "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))"
+                        background: isPlaying
+                          ? "linear-gradient(135deg, oklch(0.65 0.25 350), oklch(0.62 0.22 295))"
                           : "oklch(0.22 0.015 280)",
                       }}
+                      aria-label={isPlaying ? "Pause preview" : "Play preview"}
                     >
-                      <Music2 size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
+                      {isPlaying ? (
+                        <Pause size={11} className="fill-white" />
+                      ) : (
+                        <Play size={11} className="fill-white ml-0.5" />
+                      )}
+                    </button>
+
+                    {/* Song info - tap to select */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onMusicSelect(
+                          isSelected
+                            ? null
+                            : { title: song.title, artist: song.artist },
+                        )
+                      }
+                      data-ocid="creative.music.button"
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className="text-xs font-semibold truncate text-foreground">
                         {song.title}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {song.artist}
                       </p>
-                    </div>
+                    </button>
+
                     {isSelected && (
                       <Check size={14} className="text-primary shrink-0" />
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -53,6 +53,27 @@ function findAccountByPhone(phone: string): VGAccount | undefined {
   return getAccounts().find((a) => a.phone?.replace(/\s/g, "") === normalized);
 }
 
+function updateAccountPassword(
+  identifier: string,
+  loginTab: LoginTab,
+  newPassword: string,
+) {
+  const accounts = getAccounts();
+  const idx = accounts.findIndex((a) => {
+    if (loginTab === "username")
+      return a.username.toLowerCase() === identifier.toLowerCase();
+    if (loginTab === "email")
+      return a.email?.toLowerCase() === identifier.toLowerCase();
+    return a.phone?.replace(/\s/g, "") === identifier.replace(/\s/g, "");
+  });
+  if (idx !== -1) {
+    accounts[idx].password = newPassword;
+    localStorage.setItem("vg_accounts", JSON.stringify(accounts));
+    return true;
+  }
+  return false;
+}
+
 function setSession(username: string) {
   localStorage.setItem("vg_session", JSON.stringify({ username }));
 }
@@ -62,8 +83,20 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
   const registerUser = useRegisterUser();
   const navigate = useNavigate();
 
-  // Auth mode: "login" | "create_account"
-  const [mode, setMode] = useState<"login" | "create_account">("login");
+  // Auth mode: "login" | "create_account" | "forgot_password"
+  const [mode, setMode] = useState<
+    "login" | "create_account" | "forgot_password"
+  >("login");
+
+  // Forgot password state
+  const [fpStep, setFpStep] = useState<1 | 2 | 3>(1);
+  const [fpOtpInput, setFpOtpInput] = useState("");
+  const [fpOtpError, setFpOtpError] = useState("");
+  const [fpNewPassword, setFpNewPassword] = useState("");
+  const [fpConfirmPassword, setFpConfirmPassword] = useState("");
+  const [fpPasswordError, setFpPasswordError] = useState("");
+  const [showFpNewPassword, setShowFpNewPassword] = useState(false);
+  const [showFpConfirmPassword, setShowFpConfirmPassword] = useState(false);
 
   // Login tab
   const [loginTab, setLoginTab] = useState<LoginTab>("username");
@@ -184,6 +217,81 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setFpStep(1);
+    setFpOtpInput("");
+    setFpOtpError("");
+    setFpNewPassword("");
+    setFpConfirmPassword("");
+    setFpPasswordError("");
+    setMode("forgot_password");
+  };
+
+  const handleSendOtp = () => {
+    // Check if account exists
+    let acc: VGAccount | undefined;
+    if (loginTab === "username") {
+      acc = findAccountByUsername(loginInput.trim());
+    } else if (loginTab === "email") {
+      acc = findAccountByEmail(loginInput.trim());
+    } else {
+      acc = findAccountByPhone(loginInput.trim());
+    }
+    if (!acc) {
+      toast.error("No account found with this identifier.");
+      setMode("login");
+      return;
+    }
+    toast.success("OTP sent! Use 123456 for demo");
+    setFpStep(2);
+  };
+
+  const handleVerifyOtp = () => {
+    setFpOtpError("");
+    if (fpOtpInput !== "123456") {
+      setFpOtpError("Invalid OTP. Try again.");
+      return;
+    }
+    setFpStep(3);
+  };
+
+  const handleUpdatePassword = () => {
+    setFpPasswordError("");
+    if (fpNewPassword.length < 6) {
+      setFpPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    if (fpNewPassword !== fpConfirmPassword) {
+      setFpPasswordError("Passwords do not match.");
+      return;
+    }
+    const updated = updateAccountPassword(
+      loginInput.trim(),
+      loginTab,
+      fpNewPassword,
+    );
+    if (!updated) {
+      setFpPasswordError("Account not found. Please try again.");
+      return;
+    }
+    toast.success("Password updated! Please log in.");
+    setMode("login");
+    setLoginPassword("");
+    setFpStep(1);
+    setFpNewPassword("");
+    setFpConfirmPassword("");
+  };
+
+  const handleCancelForgotPassword = () => {
+    setMode("login");
+    setFpStep(1);
+    setFpOtpInput("");
+    setFpOtpError("");
+    setFpNewPassword("");
+    setFpConfirmPassword("");
+    setFpPasswordError("");
   };
 
   const handleRegisterProfile = async (e: React.FormEvent) => {
@@ -500,6 +608,19 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                     </button>
                   </div>
 
+                  {/* Forgot password link */}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      data-ocid="auth.forgot_password.button"
+                      className="text-xs font-semibold transition-colors"
+                      style={{ color: "oklch(0.65 0.18 295)" }}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+
                   {/* Inline error */}
                   <AnimatePresence>
                     {loginError && (
@@ -587,6 +708,317 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                   Privacy Policy
                 </span>
               </p>
+            </motion.div>
+          ) : mode === "forgot_password" ? (
+            /* FORGOT PASSWORD MODE */
+            <motion.div
+              key="forgot_password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div
+                className="rounded-2xl p-6 shadow-glass"
+                style={{
+                  background: "oklch(0.13 0.012 260 / 0.9)",
+                  border: "1px solid oklch(0.22 0.02 280 / 0.6)",
+                  backdropFilter: "blur(24px)",
+                  WebkitBackdropFilter: "blur(24px)",
+                }}
+                data-ocid="auth.forgot_password.dialog"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <button
+                    type="button"
+                    onClick={handleCancelForgotPassword}
+                    data-ocid="auth.forgot_password.cancel_button"
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-secondary/60"
+                    style={{ color: "oklch(0.6 0.04 265)" }}
+                    aria-label="Back to login"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <div>
+                    <h2 className="text-lg font-bold font-display text-white">
+                      Reset Password
+                    </h2>
+                    <p
+                      className="text-xs"
+                      style={{ color: "oklch(0.55 0.03 265)" }}
+                    >
+                      Step {fpStep} of 3
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex gap-1.5 mb-6">
+                  {[1, 2, 3].map((s) => (
+                    <div
+                      key={s}
+                      className="flex-1 h-1 rounded-full transition-all"
+                      style={{
+                        background:
+                          s <= fpStep
+                            ? "linear-gradient(90deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))"
+                            : "oklch(0.22 0.015 280)",
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {fpStep === 1 && (
+                    <motion.div
+                      key="fp-step1"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">
+                          Verify your identity
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "oklch(0.55 0.03 265)" }}
+                        >
+                          We'll send a verification code to your registered{" "}
+                          {loginTab === "phone"
+                            ? "phone number"
+                            : loginTab === "email"
+                              ? "email"
+                              : "email/phone"}
+                          .
+                        </p>
+                      </div>
+
+                      {/* Read-only identifier */}
+                      <div
+                        className="flex items-center rounded-xl border px-3 h-11"
+                        style={{
+                          background: "oklch(0.15 0.012 265)",
+                          borderColor: "oklch(0.22 0.02 280)",
+                        }}
+                      >
+                        {loginTab === "username" && (
+                          <span
+                            className="text-sm font-semibold mr-1.5 select-none"
+                            style={{ color: "oklch(0.62 0.28 340)" }}
+                          >
+                            @
+                          </span>
+                        )}
+                        <span className="text-sm text-white/70 select-none">
+                          {loginInput ||
+                            "(empty — go back and enter your info)"}
+                        </span>
+                      </div>
+
+                      <Button
+                        type="button"
+                        data-ocid="auth.forgot_password.send_otp.button"
+                        onClick={handleSendOtp}
+                        disabled={!loginInput.trim()}
+                        className="w-full btn-hotpink border-0 font-bold h-11 text-sm"
+                      >
+                        Send OTP
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  {fpStep === 2 && (
+                    <motion.div
+                      key="fp-step2"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">
+                          Enter OTP
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "oklch(0.55 0.03 265)" }}
+                        >
+                          Enter the 6-digit code sent to your account
+                        </p>
+                      </div>
+
+                      <div
+                        className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                        style={{
+                          background: "oklch(0.18 0.015 265)",
+                          borderColor: fpOtpError
+                            ? "oklch(0.6 0.22 25)"
+                            : "oklch(0.25 0.02 280)",
+                        }}
+                      >
+                        <Input
+                          data-ocid="auth.forgot_password.otp.input"
+                          value={fpOtpInput}
+                          onChange={(e) => {
+                            setFpOtpInput(
+                              e.target.value.replace(/\D/g, "").slice(0, 6),
+                            );
+                            setFpOtpError("");
+                          }}
+                          placeholder="123456"
+                          maxLength={6}
+                          inputMode="numeric"
+                          className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-base font-mono tracking-[0.25em] text-center"
+                        />
+                      </div>
+
+                      <AnimatePresence>
+                        {fpOtpError && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="text-xs px-1"
+                            style={{ color: "oklch(0.7 0.22 25)" }}
+                            data-ocid="auth.forgot_password.otp.error_state"
+                          >
+                            {fpOtpError}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+
+                      <Button
+                        type="button"
+                        data-ocid="auth.forgot_password.verify_otp.button"
+                        onClick={handleVerifyOtp}
+                        disabled={fpOtpInput.length !== 6}
+                        className="w-full btn-hotpink border-0 font-bold h-11 text-sm"
+                      >
+                        Verify OTP
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  {fpStep === 3 && (
+                    <motion.div
+                      key="fp-step3"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">
+                          Create new password
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{ color: "oklch(0.55 0.03 265)" }}
+                        >
+                          Your username will stay the same. Only password will
+                          change.
+                        </p>
+                      </div>
+
+                      {/* New password */}
+                      <div
+                        className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                        style={{
+                          background: "oklch(0.18 0.015 265)",
+                          borderColor: "oklch(0.25 0.02 280)",
+                        }}
+                      >
+                        <Input
+                          data-ocid="auth.forgot_password.new_password.input"
+                          type={showFpNewPassword ? "text" : "password"}
+                          value={fpNewPassword}
+                          onChange={(e) => {
+                            setFpNewPassword(e.target.value);
+                            setFpPasswordError("");
+                          }}
+                          placeholder="New password"
+                          className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm flex-1"
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowFpNewPassword((v) => !v)}
+                          className="ml-2 transition-colors"
+                          style={{ color: "oklch(0.55 0.04 265)" }}
+                        >
+                          {showFpNewPassword ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Confirm password */}
+                      <div
+                        className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                        style={{
+                          background: "oklch(0.18 0.015 265)",
+                          borderColor: "oklch(0.25 0.02 280)",
+                        }}
+                      >
+                        <Input
+                          data-ocid="auth.forgot_password.confirm_password.input"
+                          type={showFpConfirmPassword ? "text" : "password"}
+                          value={fpConfirmPassword}
+                          onChange={(e) => {
+                            setFpConfirmPassword(e.target.value);
+                            setFpPasswordError("");
+                          }}
+                          placeholder="Confirm new password"
+                          className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm flex-1"
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowFpConfirmPassword((v) => !v)}
+                          className="ml-2 transition-colors"
+                          style={{ color: "oklch(0.55 0.04 265)" }}
+                        >
+                          {showFpConfirmPassword ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      </div>
+
+                      <AnimatePresence>
+                        {fpPasswordError && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="text-xs px-1"
+                            style={{ color: "oklch(0.7 0.22 25)" }}
+                            data-ocid="auth.forgot_password.password.error_state"
+                          >
+                            {fpPasswordError}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+
+                      <Button
+                        type="button"
+                        data-ocid="auth.forgot_password.update_password.button"
+                        onClick={handleUpdatePassword}
+                        disabled={!fpNewPassword || !fpConfirmPassword}
+                        className="w-full btn-hotpink border-0 font-bold h-11 text-sm"
+                      >
+                        Update Password
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           ) : (
             /* CREATE ACCOUNT MODE */

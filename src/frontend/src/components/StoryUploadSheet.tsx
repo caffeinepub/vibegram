@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -9,10 +10,14 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
+  Camera,
   CheckCircle2,
   ImagePlus,
+  Link,
   Loader2,
   Music2,
+  Smile,
+  Type,
   Video,
   X,
 } from "lucide-react";
@@ -29,6 +34,68 @@ interface StoryUploadSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type StoryCreationMode =
+  | "options"
+  | "camera"
+  | "photo"
+  | "text"
+  | "song"
+  | "link"
+  | "stickers"
+  | "preview";
+
+const TEXT_GRADIENTS = [
+  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+  "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+  "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+  "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+  "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+];
+
+const STORY_CREATION_OPTIONS = [
+  {
+    id: "camera" as const,
+    icon: <Camera size={22} />,
+    label: "Camera",
+    gradient:
+      "linear-gradient(135deg, oklch(0.55 0.22 255), oklch(0.5 0.18 230))",
+  },
+  {
+    id: "photo" as const,
+    icon: <ImagePlus size={22} />,
+    label: "Photo",
+    gradient:
+      "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+  },
+  {
+    id: "text" as const,
+    icon: <Type size={22} />,
+    label: "Text",
+    gradient:
+      "linear-gradient(135deg, oklch(0.65 0.18 30), oklch(0.62 0.22 350))",
+  },
+  {
+    id: "song" as const,
+    icon: <Music2 size={22} />,
+    label: "Song",
+    gradient:
+      "linear-gradient(135deg, oklch(0.55 0.2 150), oklch(0.5 0.22 200))",
+  },
+  {
+    id: "link" as const,
+    icon: <Link size={22} />,
+    label: "Social Link",
+    gradient:
+      "linear-gradient(135deg, oklch(0.5 0.2 230), oklch(0.55 0.22 265))",
+  },
+  {
+    id: "stickers" as const,
+    icon: <Smile size={22} />,
+    label: "Stickers",
+    gradient: "linear-gradient(135deg, oklch(0.7 0.2 80), oklch(0.65 0.22 50))",
+  },
+];
+
 export function StoryUploadSheet({
   open,
   onOpenChange,
@@ -44,7 +111,20 @@ export function StoryUploadSheet({
     title: string;
     artist: string;
   } | null>(null);
+
+  // Creation mode state
+  const [creationMode, setCreationMode] =
+    useState<StoryCreationMode>("options");
+
+  // Text story state
+  const [textStoryText, setTextStoryText] = useState("");
+  const [textStoryGradient, setTextStoryGradient] = useState(TEXT_GRADIENTS[0]);
+
+  // Social link state
+  const [socialLinkUrl, setSocialLinkUrl] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const createPost = useCreatePost();
 
   const handleFileSelect = useCallback(
@@ -63,6 +143,7 @@ export function StoryUploadSheet({
       if (preview) URL.revokeObjectURL(preview);
       const url = URL.createObjectURL(file);
       setPreview(url);
+      setCreationMode("preview");
     },
     [preview],
   );
@@ -82,12 +163,55 @@ export function StoryUploadSheet({
     setFilterStyle("");
     setOverlays([]);
     setSelectedSong(null);
+    setCreationMode("options");
+    setTextStoryText("");
+    setSocialLinkUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const handleClose = () => {
     handleClear();
     onOpenChange(false);
+  };
+
+  const handleOptionSelect = (id: StoryCreationMode) => {
+    if (id === "camera") {
+      cameraInputRef.current?.click();
+    } else if (id === "photo") {
+      fileInputRef.current?.click();
+    } else {
+      setCreationMode(id);
+    }
+  };
+
+  const handleTextStoryShare = () => {
+    if (!textStoryText.trim()) {
+      toast.error("Please enter some text");
+      return;
+    }
+    toast.success("Text story shared! ✨");
+    handleClose();
+  };
+
+  const handleSocialLinkAdd = () => {
+    if (!socialLinkUrl.trim()) {
+      toast.error("Please enter a URL");
+      return;
+    }
+    setOverlays((prev) => [
+      ...prev,
+      {
+        id: `link-${Date.now()}`,
+        type: "sticker",
+        content: `🔗 ${socialLinkUrl.trim()}`,
+        x: 20,
+        y: 50,
+      },
+    ]);
+    setSocialLinkUrl("");
+    toast.success("Link sticker added! 🔗");
+    setCreationMode("options");
   };
 
   const handleSubmit = async () => {
@@ -102,7 +226,6 @@ export function StoryUploadSheet({
         ? MediaType.video
         : MediaType.photo;
 
-      // Stories use caption '__story__' or '__cf__' (close friends only) as sentinel
       await createPost.mutateAsync({
         media: blob,
         mediaType,
@@ -144,49 +267,402 @@ export function StoryUploadSheet({
           </button>
         </SheetHeader>
 
+        {/* Hidden file inputs */}
+        <input
+          id="story-file-upload"
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleInputChange}
+          className="hidden"
+          data-ocid="story.upload.upload_button"
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*,video/*"
+          capture="environment"
+          onChange={handleInputChange}
+          className="hidden"
+          data-ocid="story.upload.camera_button"
+        />
+
         <div className="flex-1 px-5 py-6 space-y-5 overflow-y-auto scrollbar-none h-full pb-24">
           <AnimatePresence mode="wait">
-            {!selectedFile ? (
+            {/* OPTIONS SCREEN */}
+            {creationMode === "options" && (
               <motion.div
-                key="picker"
+                key="options"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
+                className="space-y-6"
               >
-                <label
-                  htmlFor="story-file-upload"
-                  data-ocid="story.upload.dropzone"
-                  className="border-2 border-dashed border-border hover:border-vibe-purple/60 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all py-16 px-8 text-center hover:bg-secondary/30"
-                >
-                  <div className="gradient-bg rounded-2xl p-5 mb-5 shadow-glow">
-                    <ImagePlus size={28} className="text-white" />
-                  </div>
-                  <h3 className="text-lg font-bold font-display mb-1.5">
-                    Share a story
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                    Tap to choose a photo or video
+                {/* Instagram-style creation options grid */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-4 font-medium tracking-wide uppercase">
+                    Create a Story
                   </p>
-                  <div className="flex gap-3">
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
-                      <ImagePlus size={11} /> Photo
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
-                      <Video size={11} /> Video
-                    </span>
+                  <div className="grid grid-cols-3 gap-3">
+                    {STORY_CREATION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleOptionSelect(opt.id)}
+                        data-ocid={`story.creation.${opt.id}.button`}
+                        className="flex flex-col items-center gap-2.5 py-4 rounded-2xl transition-all active:scale-95 hover:opacity-90"
+                        style={{
+                          background: "oklch(0.16 0.015 265)",
+                          border: "1px solid oklch(0.22 0.015 280 / 0.6)",
+                        }}
+                      >
+                        <div
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg"
+                          style={{ background: opt.gradient }}
+                        >
+                          {opt.icon}
+                        </div>
+                        <span className="text-xs font-semibold text-foreground">
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                </label>
-                <input
-                  id="story-file-upload"
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleInputChange}
-                  className="hidden"
-                  data-ocid="story.upload.upload_button"
+                </div>
+
+                {/* Drag & drop zone */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3 font-medium tracking-wide uppercase">
+                    Or upload a file
+                  </p>
+                  <label
+                    htmlFor="story-file-upload"
+                    data-ocid="story.upload.dropzone"
+                    className="border-2 border-dashed border-border hover:border-vibe-purple/60 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all py-10 px-8 text-center hover:bg-secondary/30"
+                  >
+                    <div
+                      className="rounded-2xl p-4 mb-4 shadow-glow"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                      }}
+                    >
+                      <ImagePlus size={24} className="text-white" />
+                    </div>
+                    <h3 className="text-base font-bold font-display mb-1">
+                      Drag & drop or tap
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Photo or video up to 50MB
+                    </p>
+                  </label>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TEXT STORY */}
+            {creationMode === "text" && (
+              <motion.div
+                key="text-story"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="space-y-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCreationMode("options")}
+                  data-ocid="story.text.back.button"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Back
+                </button>
+
+                <h3 className="text-base font-bold font-display">Text Story</h3>
+
+                {/* Preview */}
+                <div
+                  className="relative rounded-2xl aspect-[9/16] max-h-[50dvh] mx-auto w-full flex items-center justify-center p-6 overflow-hidden"
+                  style={{ background: textStoryGradient }}
+                >
+                  <p
+                    className="text-white text-xl font-bold text-center leading-relaxed break-words"
+                    style={{ textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
+                  >
+                    {textStoryText || "Your text here..."}
+                  </p>
+                </div>
+
+                {/* Gradient picker */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Background
+                  </p>
+                  <div className="flex gap-2">
+                    {TEXT_GRADIENTS.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setTextStoryGradient(g)}
+                        data-ocid="story.text.gradient.button"
+                        className="w-10 h-10 rounded-full shrink-0 border-2 transition-all"
+                        style={{
+                          background: g,
+                          borderColor:
+                            textStoryGradient === g ? "white" : "transparent",
+                          transform:
+                            textStoryGradient === g
+                              ? "scale(1.15)"
+                              : "scale(1)",
+                        }}
+                        aria-label="Choose gradient"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text input */}
+                <textarea
+                  value={textStoryText}
+                  onChange={(e) => setTextStoryText(e.target.value)}
+                  placeholder="What's on your mind?"
+                  maxLength={200}
+                  rows={3}
+                  data-ocid="story.text.textarea"
+                  className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+
+                <Button
+                  type="button"
+                  data-ocid="story.text.share.button"
+                  onClick={handleTextStoryShare}
+                  disabled={!textStoryText.trim()}
+                  className="w-full btn-gradient border-0 font-semibold h-12 text-base"
+                >
+                  Share Text Story ✨
+                </Button>
+              </motion.div>
+            )}
+
+            {/* SONG SELECTION (shows music tab of CreativeToolbar) */}
+            {creationMode === "song" && (
+              <motion.div
+                key="song-picker"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("options")}
+                    data-ocid="story.song.back.button"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    ← Back
+                  </button>
+                  {selectedSong && (
+                    <button
+                      type="button"
+                      onClick={() => setCreationMode("options")}
+                      data-ocid="story.song.done.button"
+                      className="text-sm font-semibold text-white px-3 py-1.5 rounded-full"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                      }}
+                    >
+                      Done ✓
+                    </button>
+                  )}
+                </div>
+
+                <h3 className="text-base font-bold font-display">
+                  Pick a Song
+                </h3>
+
+                <CreativeToolbar
+                  onFilterSelect={setFilterStyle}
+                  onStickerAdd={(emoji) =>
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `sticker-${Date.now()}-${Math.random()}`,
+                        type: "sticker",
+                        content: emoji,
+                        x: 40,
+                        y: 40,
+                      },
+                    ])
+                  }
+                  onTextAdd={(overlay) =>
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `text-${Date.now()}-${Math.random()}`,
+                        type: "text",
+                        content: overlay.text,
+                        style: overlay.style,
+                        color: overlay.color,
+                        x: 40,
+                        y: 40,
+                      },
+                    ])
+                  }
+                  onMusicSelect={(song) => {
+                    setSelectedSong(song);
+                    if (song) {
+                      toast.success(`Song added: ${song.title}`);
+                    }
+                  }}
+                  selectedFilter={filterStyle}
+                  selectedSong={selectedSong}
                 />
               </motion.div>
-            ) : (
+            )}
+
+            {/* SOCIAL LINK */}
+            {creationMode === "link" && (
+              <motion.div
+                key="social-link"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="space-y-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCreationMode("options")}
+                  data-ocid="story.link.back.button"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Back
+                </button>
+
+                <h3 className="text-base font-bold font-display">
+                  Add Social Link
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Add a clickable link sticker to your story
+                </p>
+
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Link
+                      size={15}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      data-ocid="story.link.url.input"
+                      value={socialLinkUrl}
+                      onChange={(e) => setSocialLinkUrl(e.target.value)}
+                      placeholder="https://instagram.com/yourprofile"
+                      type="url"
+                      className="bg-secondary border-border pl-10 h-12"
+                    />
+                  </div>
+
+                  {socialLinkUrl && (
+                    <div
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                      style={{
+                        background: "oklch(0.45 0.18 250 / 0.2)",
+                        border: "1px solid oklch(0.45 0.18 250 / 0.4)",
+                      }}
+                    >
+                      <Link size={14} className="text-blue-400 shrink-0" />
+                      <span className="text-xs text-blue-300 truncate font-semibold">
+                        {socialLinkUrl}
+                      </span>
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    data-ocid="story.link.add.button"
+                    onClick={handleSocialLinkAdd}
+                    disabled={!socialLinkUrl.trim()}
+                    className="w-full btn-gradient border-0 font-semibold h-12"
+                  >
+                    Add Link Sticker 🔗
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STICKERS (shows stickers tab) */}
+            {creationMode === "stickers" && (
+              <motion.div
+                key="stickers"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("options")}
+                    data-ocid="story.stickers.back.button"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("options")}
+                    data-ocid="story.stickers.done.button"
+                    className="text-sm font-semibold text-white px-3 py-1.5 rounded-full"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+
+                <h3 className="text-base font-bold font-display">Stickers</h3>
+
+                <CreativeToolbar
+                  onFilterSelect={setFilterStyle}
+                  onStickerAdd={(emoji) => {
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `sticker-${Date.now()}-${Math.random()}`,
+                        type: "sticker",
+                        content: emoji,
+                        x: 40,
+                        y: 40,
+                      },
+                    ]);
+                    toast.success("Sticker added!");
+                  }}
+                  onTextAdd={(overlay) =>
+                    setOverlays((prev) => [
+                      ...prev,
+                      {
+                        id: `text-${Date.now()}-${Math.random()}`,
+                        type: "text",
+                        content: overlay.text,
+                        style: overlay.style,
+                        color: overlay.color,
+                        x: 40,
+                        y: 40,
+                      },
+                    ])
+                  }
+                  onMusicSelect={setSelectedSong}
+                  selectedFilter={filterStyle}
+                  selectedSong={selectedSong}
+                />
+              </motion.div>
+            )}
+
+            {/* PREVIEW (file selected) */}
+            {creationMode === "preview" && selectedFile && (
               <motion.div
                 key="preview"
                 initial={{ opacity: 0, y: 8 }}
@@ -194,6 +670,16 @@ export function StoryUploadSheet({
                 exit={{ opacity: 0, y: -8 }}
                 className="space-y-5"
               >
+                {/* Back button */}
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  data-ocid="story.preview.back.button"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Change media
+                </button>
+
                 {/* Preview */}
                 <div className="relative rounded-2xl overflow-hidden bg-secondary aspect-[9/16] max-h-[55dvh] mx-auto w-full">
                   <MediaOverlayCanvas

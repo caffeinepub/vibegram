@@ -3,11 +3,20 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Loader2, Play, Search, X } from "lucide-react";
+import {
+  ChevronRight,
+  Loader2,
+  Music2,
+  Pause,
+  Play,
+  Search,
+  X,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { Post, UserId, UserProfile } from "../backend.d";
 import { AvatarWithRing } from "../components/AvatarWithRing";
+import { ALL_SONGS } from "../components/CreativeToolbar";
 import { UserCard } from "../components/UserCard";
 import {
   useExploreFeed,
@@ -16,6 +25,28 @@ import {
   useSearchUsers,
   useUnfollowUser,
 } from "../hooks/useQueries";
+
+/** Play a short 440Hz beep via Web Audio API */
+function playBeepExplore(durationMs = 600) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + durationMs / 1000,
+    );
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + durationMs / 1000);
+    setTimeout(() => ctx.close(), durationMs + 100);
+  } catch {
+    // Silently fail
+  }
+}
 
 interface ExplorePostTileProps {
   post: Post;
@@ -166,10 +197,33 @@ function SuggestedUserRowById({
 
 export function ExplorePage() {
   const [query, setQuery] = useState("");
+  const [musicQuery, setMusicQuery] = useState("");
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
   const { data: posts = [], isLoading: postsLoading } = useExploreFeed();
   const { data: searchResults = [], isLoading: searchLoading } =
     useSearchUsers(query);
   const isSearching = query.trim().length > 0;
+
+  const handlePlayPause = (key: string) => {
+    if (playingKey === key) {
+      setPlayingKey(null);
+    } else {
+      setPlayingKey(key);
+      playBeepExplore(600);
+      setTimeout(
+        () => setPlayingKey((curr) => (curr === key ? null : curr)),
+        3000,
+      );
+    }
+  };
+
+  const filteredMusicSongs = musicQuery.trim()
+    ? ALL_SONGS.filter(
+        (s) =>
+          s.title.toLowerCase().includes(musicQuery.toLowerCase()) ||
+          s.artist.toLowerCase().includes(musicQuery.toLowerCase()),
+      )
+    : [];
 
   // Filter posts
   const regularPosts = posts.filter(
@@ -292,6 +346,109 @@ export function ExplorePage() {
                 </div>
                 <ChevronRight size={16} className="text-muted-foreground" />
               </Link>
+            </section>
+
+            {/* Music search section */}
+            <section>
+              <h2 className="text-base font-bold font-display mb-3 px-1 flex items-center gap-1.5">
+                🎵 Music
+              </h2>
+              <div className="relative mb-2">
+                <Music2
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  data-ocid="explore.music.search_input"
+                  value={musicQuery}
+                  onChange={(e) => setMusicQuery(e.target.value)}
+                  placeholder="Search songs & artists..."
+                  className="pl-9 pr-9 bg-secondary border-border text-sm"
+                />
+                {musicQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setMusicQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    data-ocid="explore.music.search_clear.button"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {musicQuery.trim() && (
+                <div
+                  className="rounded-2xl border border-border overflow-hidden"
+                  style={{ background: "oklch(0.14 0.012 265)" }}
+                  data-ocid="explore.music.list"
+                >
+                  {filteredMusicSongs.length === 0 ? (
+                    <div
+                      className="py-8 text-center text-sm text-muted-foreground"
+                      data-ocid="explore.music.empty_state"
+                    >
+                      No songs found for "{musicQuery}"
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {filteredMusicSongs.map((song, idx) => {
+                        const key = `${song.title}-${song.artist}`;
+                        const isPlaying = playingKey === key;
+                        return (
+                          <div
+                            key={key}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors"
+                            data-ocid={`explore.music.item.${idx + 1}`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handlePlayPause(key)}
+                              data-ocid="explore.music.play.button"
+                              className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white transition-all active:scale-90"
+                              style={{
+                                background: isPlaying
+                                  ? "linear-gradient(135deg, oklch(0.65 0.25 350), oklch(0.62 0.22 295))"
+                                  : "oklch(0.22 0.015 280)",
+                              }}
+                              aria-label={isPlaying ? "Pause" : "Play"}
+                            >
+                              {isPlaying ? (
+                                <Pause size={13} className="fill-white" />
+                              ) : (
+                                <Play size={13} className="fill-white ml-0.5" />
+                              )}
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate text-foreground">
+                                {song.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {song.artist} · {song.genre}
+                              </p>
+                            </div>
+                            {isPlaying && (
+                              <div className="flex items-end gap-0.5 h-4 shrink-0">
+                                {[1, 2, 3].map((b) => (
+                                  <div
+                                    key={b}
+                                    className="w-1 rounded-full animate-pulse"
+                                    style={{
+                                      height: `${8 + b * 3}px`,
+                                      background: "oklch(0.65 0.25 350)",
+                                      animationDelay: `${b * 0.1}s`,
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* Reels horizontal scroll section */}
