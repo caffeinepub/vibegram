@@ -46,7 +46,7 @@ function AccountSwitcherSheet({
       <SheetContent
         side="bottom"
         className="rounded-t-3xl border-border pb-safe"
-        style={{ background: "oklch(0.14 0.008 260)" }}
+        style={{ background: "oklch(0.07 0.005 270)" }}
         data-ocid="account_switcher.sheet"
       >
         <SheetHeader className="pb-4">
@@ -165,7 +165,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
       <nav
         className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 border-t border-border"
         style={{
-          background: "oklch(0.14 0.008 260 / 0.95)",
+          background: "oklch(0 0 0 / 0.98)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           height: "var(--nav-height)",
@@ -181,10 +181,17 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
               "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all",
               isActive("/")
                 ? "text-vibe-purple"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-gray-400 hover:text-white",
             )}
           >
-            <Home size={22} className={isActive("/") ? "fill-current" : ""} />
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                isActive("/") ? "bg-vibe-purple/10" : "",
+              )}
+            >
+              <Home size={20} className={isActive("/") ? "fill-current" : ""} />
+            </div>
             <span className="text-[10px] font-semibold font-body">Home</span>
           </Link>
 
@@ -196,13 +203,20 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
               "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all",
               isActive("/explore")
                 ? "text-vibe-purple"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-gray-400 hover:text-white",
             )}
           >
-            <Compass
-              size={22}
-              className={isActive("/explore") ? "fill-current" : ""}
-            />
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                isActive("/explore") ? "bg-vibe-purple/10" : "",
+              )}
+            >
+              <Compass
+                size={20}
+                className={isActive("/explore") ? "fill-current" : ""}
+              />
+            </div>
             <span className="text-[10px] font-semibold font-body">Explore</span>
           </Link>
 
@@ -227,13 +241,20 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
               "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all",
               isActive("/reels")
                 ? "text-vibe-purple"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-gray-400 hover:text-white",
             )}
           >
-            <Clapperboard
-              size={22}
-              className={isActive("/reels") ? "fill-current" : ""}
-            />
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                isActive("/reels") ? "bg-vibe-purple/10" : "",
+              )}
+            >
+              <Clapperboard
+                size={20}
+                className={isActive("/reels") ? "fill-current" : ""}
+              />
+            </div>
             <span className="text-[10px] font-semibold font-body">Reels</span>
           </Link>
 
@@ -250,14 +271,21 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
               "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all select-none",
               isActive("/profile")
                 ? "text-vibe-purple"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-gray-400 hover:text-white",
             )}
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <User
-              size={22}
-              className={isActive("/profile") ? "fill-current" : ""}
-            />
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                isActive("/profile") ? "bg-vibe-purple/10" : "",
+              )}
+            >
+              <User
+                size={20}
+                className={isActive("/profile") ? "fill-current" : ""}
+              />
+            </div>
             <span className="text-[10px] font-semibold font-body">Profile</span>
           </button>
         </div>

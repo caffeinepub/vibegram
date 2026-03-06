@@ -128,7 +128,7 @@ function SettingsRow({
       onClick={onClick}
       disabled={!onClick && !children}
       data-ocid={dataOcid}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${onClick ? "hover:bg-secondary/40 active:bg-secondary/60" : "cursor-default"} ${destructive ? "text-destructive" : ""}`}
+      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${onClick ? "hover:bg-vibe-purple/10 active:bg-vibe-purple/15" : "cursor-default"} ${destructive ? "text-destructive" : ""}`}
     >
       {Icon && (
         <Icon
@@ -176,58 +176,6 @@ function ToggleRow({
         onCheckedChange={onCheckedChange}
         data-ocid={dataOcid}
       />
-    </div>
-  );
-}
-
-// ─── Expandable Row ───────────────────────────────────────────────────────────
-
-function ExpandableRow({
-  icon: Icon,
-  title,
-  children,
-  "data-ocid": dataOcid,
-}: {
-  icon?: React.FC<{ size?: number; className?: string }>;
-  title: string;
-  children: React.ReactNode;
-  "data-ocid"?: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        data-ocid={dataOcid}
-        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 transition-colors text-left"
-      >
-        {Icon && <Icon size={18} className="text-muted-foreground" />}
-        <span className="flex-1 text-sm font-medium text-foreground">
-          {title}
-        </span>
-        <motion.div
-          animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown size={16} className="text-muted-foreground" />
-        </motion.div>
-      </button>
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -449,7 +397,7 @@ export function SettingsPage() {
       <header
         className="sticky top-0 z-30 px-4 py-3 border-b border-border flex items-center gap-3"
         style={{
-          background: "oklch(0.14 0.008 260 / 0.95)",
+          background: "oklch(0 0 0 / 0.98)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
         }}
@@ -491,7 +439,6 @@ export function SettingsPage() {
             label="Edit Profile"
             onClick={() => {
               navigate({ to: "/profile" });
-              toast.info("Tap Edit Profile on your profile page");
             }}
             data-ocid="settings.edit_profile.button"
           />
@@ -708,33 +655,28 @@ export function SettingsPage() {
           />
           <Separator className="bg-border/60" />
           {/* Privacy Policy */}
-          <ExpandableRow
+          <SettingsRow
             icon={FileText}
-            title="Privacy Policy"
-            data-ocid="settings.privacy_policy.toggle"
-          >
-            <p>
-              VibeGram respects user privacy and collects only necessary
-              information such as username and profile details to operate the
-              service. User data is stored securely on the Internet Computer
-              blockchain and is not sold to third parties. Posts and media are
-              shared based on your privacy settings.
-            </p>
-          </ExpandableRow>
+            label="Privacy Policy"
+            onClick={() => navigate({ to: "/privacy-policy" })}
+            data-ocid="settings.privacy_policy.button"
+          />
           <Separator className="bg-border/60" />
           {/* Terms & Conditions */}
-          <ExpandableRow
+          <SettingsRow
             icon={FileText}
-            title="Terms & Conditions"
-            data-ocid="settings.terms.toggle"
-          >
-            <p>
-              Users must follow community guidelines and must not upload
-              illegal, harmful, or abusive content. VibeGram has the right to
-              remove content or suspend accounts that violate platform rules. By
-              using VibeGram, you agree to these terms.
-            </p>
-          </ExpandableRow>
+            label="Terms & Conditions"
+            onClick={() => navigate({ to: "/terms" })}
+            data-ocid="settings.terms.button"
+          />
+          <Separator className="bg-border/60" />
+          {/* Copyright */}
+          <SettingsRow
+            icon={FileText}
+            label="Copyright"
+            onClick={() => navigate({ to: "/copyright" })}
+            data-ocid="settings.copyright.button"
+          />
         </SettingsSection>
 
         {/* ══════════════════════════════════════════════════════════════════ */}

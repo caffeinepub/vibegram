@@ -1,6 +1,7 @@
 import { Eye, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Post } from "../backend.d";
 import { useGetUserProfile } from "../hooks/useQueries";
 import { formatRelativeTime } from "../utils/helpers";
@@ -383,7 +384,10 @@ export function StoryViewer({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setReplyText("");
+                    if (replyText.trim()) {
+                      toast.success("Reply sent!");
+                      setReplyText("");
+                    }
                   }}
                   className="text-white/80 hover:text-white text-sm font-medium transition-colors shrink-0"
                   data-ocid="story.reply.button"

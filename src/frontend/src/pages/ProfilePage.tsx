@@ -19,6 +19,7 @@ import {
   Grid3x3,
   Loader2,
   Settings,
+  Share2,
   Tag,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -28,6 +29,8 @@ import { ExternalBlob } from "../backend";
 import type { Post } from "../backend.d";
 import { AvatarWithRing } from "../components/AvatarWithRing";
 import { PostDetailModal } from "../components/PostDetailModal";
+import { ShareProfileSheet } from "../components/ShareProfileSheet";
+import { HighlightsRow } from "../components/StoryHighlights";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -251,6 +254,7 @@ export function ProfilePage() {
   const { data: followers = [] } = useFollowers(principalStr || null);
   const { data: following = [] } = useFollowing(principalStr || null);
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [postModalOpen, setPostModalOpen] = useState(false);
 
@@ -328,6 +332,17 @@ export function ProfilePage() {
             <Bell size={20} />
           </Link>
 
+          {/* Share profile */}
+          <button
+            type="button"
+            data-ocid="profile.share.button"
+            onClick={() => setShareOpen(true)}
+            className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-secondary transition-colors"
+            aria-label="Share profile"
+          >
+            <Share2 size={20} />
+          </button>
+
           {/* Settings */}
           <Link
             to="/settings"
@@ -402,6 +417,11 @@ export function ProfilePage() {
             Edit Profile
           </Button>
         </motion.div>
+
+        {/* Story Highlights */}
+        <HighlightsRow
+          storyPosts={posts.filter((p) => p.caption === "__story__")}
+        />
 
         {/* Tabs */}
         <div className="border-t border-border">
@@ -571,6 +591,13 @@ export function ProfilePage() {
         post={selectedPost}
         open={postModalOpen}
         onOpenChange={setPostModalOpen}
+      />
+
+      <ShareProfileSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        username={profile?.username || "user"}
+        displayName={profile?.displayName || ""}
       />
     </div>
   );

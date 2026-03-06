@@ -13,15 +13,18 @@ import { SplashScreen } from "./components/SplashScreen";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
 import { AuthPage } from "./pages/AuthPage";
+import { CopyrightPage } from "./pages/CopyrightPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { HashtagsPage } from "./pages/HashtagsPage";
 import { HomePage } from "./pages/HomePage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ReelsPage } from "./pages/ReelsPage";
 import { SavedPage } from "./pages/SavedPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TermsPage } from "./pages/TermsPage";
 import { UserProfilePage } from "./pages/UserProfilePage";
 
 // ─── Layout with BottomNav ────────────────────────────────────────────────────
@@ -110,6 +113,24 @@ const hashtagsRoute = createRoute({
   component: HashtagsPage,
 });
 
+const privacyPolicyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy-policy",
+  component: PrivacyPolicyPage,
+});
+
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: TermsPage,
+});
+
+const copyrightRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/copyright",
+  component: CopyrightPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   exploreRoute,
@@ -121,6 +142,9 @@ const routeTree = rootRoute.addChildren([
   reelsRoute,
   settingsRoute,
   hashtagsRoute,
+  privacyPolicyRoute,
+  termsRoute,
+  copyrightRoute,
 ]);
 
 const router = createRouter({ routeTree });

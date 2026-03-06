@@ -30,22 +30,6 @@ export function SplashScreen() {
         transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         className="flex flex-col items-center gap-5"
       >
-        {/* Logo - user uploaded app icon */}
-        <div className="relative">
-          <div
-            className="absolute inset-0 rounded-3xl blur-xl opacity-40"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350), oklch(0.6 0.2 225))",
-            }}
-          />
-          <img
-            src="/assets/uploads/InShot_20260306_023848346-1.png"
-            alt="VibeGram"
-            className="h-28 w-28 rounded-3xl object-cover relative shadow-glow"
-          />
-        </div>
-
         {/* App name */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
