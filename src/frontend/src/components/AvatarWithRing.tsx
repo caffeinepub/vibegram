@@ -38,7 +38,7 @@ export function AvatarWithRing({
     ? getInitials(profile.displayName || profile.username || "U")
     : "?";
   const gradient = getAvatarGradient(profile?.username || "default");
-  const photoUrl = profile?.profilePhoto?.getDirectURL();
+  const photoUrl = profile?.profilePhoto || null;
 
   if (showRing) {
     return (

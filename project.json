@@ -1,0 +1,26 @@
+{
+  "overview": "Butki is a short-video and photo-sharing social media app with Instagram-like features plus a built-in Refer & Earn system. Users share reels, stories, and posts, earn real money by inviting friends, and manage earnings in an in-app wallet with UPI/bank withdrawal.",
+  "features": [
+    "User auth with username/email/phone signup and OTP",
+    "Home feed, explore, and vertical reels with music",
+    "Stories with creative tools: filters, stickers, text, music",
+    "Like, comment, share, and save on posts and reels",
+    "Direct messaging with audio and video call UI",
+    "Refer & Earn: unique referral codes, ₹10/₹20/₹50 reward tiers",
+    "In-app wallet with transaction history and UPI/bank withdrawal",
+    "Admin panel for user management, post moderation, and payout approvals",
+    "Profile with referral code display, wallet balance, highlights",
+    "Notifications including referral reward alerts"
+  ],
+  "category": "social-media",
+  "tags": [
+    "social-media",
+    "reels",
+    "short-video",
+    "refer-and-earn",
+    "wallet",
+    "monetization",
+    "instagram-like"
+  ],
+  "last_updated": "2026-04-08T02:34:21.487Z"
+}

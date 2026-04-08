@@ -16,7 +16,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Sora", "sans-serif"],
+        display: ["Sora", "Space Grotesk", "sans-serif"],
         body: ["Plus Jakarta Sans", "sans-serif"],
       },
       colors: {
@@ -70,11 +70,17 @@ export default {
           border: "oklch(var(--sidebar-border))",
           ring: "oklch(var(--sidebar-ring))",
         },
-        // VibeGram custom
+        // Butki custom branding
+        butki: {
+          purple: "oklch(var(--butki-purple))",
+          pink: "oklch(var(--butki-pink))",
+          blue: "oklch(var(--butki-blue))",
+        },
+        // Vibe aliases (backwards compat)
         vibe: {
-          purple: "oklch(var(--vibe-purple))",
-          pink: "oklch(var(--vibe-pink))",
-          blue: "oklch(var(--vibe-blue))",
+          purple: "oklch(var(--vibe-purple) / <alpha-value>)",
+          pink: "oklch(var(--vibe-pink) / <alpha-value>)",
+          blue: "oklch(var(--vibe-blue) / <alpha-value>)",
         },
       },
       borderRadius: {

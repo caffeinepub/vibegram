@@ -23,7 +23,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ExternalBlob, MediaType } from "../backend";
+import { MediaType } from "../backend";
 import { useCreatePost } from "../hooks/useQueries";
 import { CreativeToolbar } from "./CreativeToolbar";
 import { MediaOverlayCanvas, type Overlay } from "./MediaOverlayCanvas";
@@ -100,11 +100,17 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
   const handleSubmit = async () => {
     if (!selectedFile) return;
     try {
-      const arrayBuffer = await selectedFile.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      const blob = ExternalBlob.fromBytes(bytes).withUploadProgress(
-        (percentage) => setUploadProgress(percentage),
-      );
+      // Convert file to data URL for storage
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.onprogress = (e) => {
+          if (e.lengthComputable)
+            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        reader.readAsDataURL(selectedFile);
+      });
 
       // Reels use '__reel__' prefix so they can be filtered in the Reels page
       let reelCaption = caption.trim()
@@ -136,7 +142,7 @@ export function ReelUploadSheet({ open, onOpenChange }: ReelUploadSheetProps) {
       }
 
       await createPost.mutateAsync({
-        media: blob,
+        mediaUrl: dataUrl,
         mediaType: MediaType.video,
         caption: reelCaption,
       });

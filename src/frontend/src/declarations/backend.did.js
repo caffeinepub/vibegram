@@ -8,105 +8,200 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+export const TxId = IDL.Nat;
+export const AdminAnalytics = IDL.Record({
+  'pendingWithdrawals' : IDL.Nat,
+  'totalUsers' : IDL.Nat,
+  'totalWithdrawals' : IDL.Float64,
+  'totalPosts' : IDL.Nat,
+  'newUsersThisWeek' : IDL.Nat,
+  'totalReels' : IDL.Nat,
+});
+export const PostId = IDL.Nat;
+export const UserId = IDL.Principal;
+export const MediaType = IDL.Variant({
+  'video' : IDL.Null,
+  'photo' : IDL.Null,
+});
+export const AdminPostInfo = IDL.Record({
+  'id' : PostId,
+  'likeCount' : IDL.Nat,
+  'authorId' : UserId,
+  'createdAt' : IDL.Int,
+  'caption' : IDL.Text,
+  'commentCount' : IDL.Nat,
+  'mediaType' : MediaType,
+  'isFlagged' : IDL.Bool,
+  'flagCount' : IDL.Nat,
+});
+export const AdminReferralStats = IDL.Record({
+  'totalReferrals' : IDL.Nat,
+  'totalPaid' : IDL.Float64,
+  'topReferrers' : IDL.Vec(
+    IDL.Record({ 'username' : IDL.Text, 'earnings' : IDL.Float64 })
+  ),
+  'pendingPayout' : IDL.Float64,
+});
+export const AdminUserInfo = IDL.Record({
+  'postCount' : IDL.Nat,
+  'username' : IDL.Text,
+  'displayName' : IDL.Text,
+  'userId' : UserId,
+  'joinedAt' : IDL.Int,
+  'isActive' : IDL.Bool,
+  'isSuspended' : IDL.Bool,
+  'followerCount' : IDL.Nat,
+});
+export const WithdrawalStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const WithdrawalRequest = IDL.Record({
+  'id' : TxId,
+  'status' : WithdrawalStatus,
   'method' : IDL.Text,
-  'blob_hash' : IDL.Text,
-});
-export const _CaffeineStorageRefillInformation = IDL.Record({
-  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
-});
-export const _CaffeineStorageRefillResult = IDL.Record({
-  'success' : IDL.Opt(IDL.Bool),
-  'topped_up_amount' : IDL.Opt(IDL.Nat),
+  'userId' : UserId,
+  'createdAt' : IDL.Int,
+  'rejectionReason' : IDL.Opt(IDL.Text),
+  'amount' : IDL.Float64,
+  'accountDetails' : IDL.Text,
 });
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const PostId = IDL.Nat;
-export const UserId = IDL.Principal;
-export const Time = IDL.Int;
 export const Comment = IDL.Record({
   'authorId' : UserId,
-  'createdAt' : Time,
+  'createdAt' : IDL.Int,
   'text' : IDL.Text,
   'postId' : PostId,
 });
-export const ExternalBlob = IDL.Vec(IDL.Nat8);
-export const MediaType = IDL.Variant({
-  'video' : IDL.Null,
-  'photo' : IDL.Null,
-});
 export const Post = IDL.Record({
   'id' : PostId,
-  'media' : ExternalBlob,
   'authorId' : UserId,
-  'createdAt' : Time,
+  'createdAt' : IDL.Int,
+  'tags' : IDL.Vec(IDL.Text),
+  'mediaUrl' : IDL.Text,
   'caption' : IDL.Text,
   'mediaType' : MediaType,
+  'location' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'bio' : IDL.Text,
   'username' : IDL.Text,
   'displayName' : IDL.Text,
-  'profilePhoto' : IDL.Opt(ExternalBlob),
+  'socialLinks' : IDL.Vec(IDL.Text),
+  'profilePhoto' : IDL.Opt(IDL.Text),
+  'pronouns' : IDL.Opt(IDL.Text),
 });
 export const MessageId = IDL.Nat;
 export const Message = IDL.Record({
   'id' : MessageId,
-  'createdAt' : Time,
+  'createdAt' : IDL.Int,
   'text' : IDL.Text,
   'receiverId' : UserId,
   'senderId' : UserId,
 });
+export const WalletTxStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'completed' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const WithdrawalMethod = IDL.Variant({
+  'upi' : IDL.Text,
+  'bankTransfer' : IDL.Record({
+    'ifsc' : IDL.Text,
+    'accountNumber' : IDL.Text,
+  }),
+});
+export const WalletTxType = IDL.Variant({
+  'referralReel' : IDL.Null,
+  'withdrawal' : IDL.Null,
+  'referralFollowers' : IDL.Null,
+  'referralSignup' : IDL.Null,
+});
+export const WalletTransaction = IDL.Record({
+  'id' : TxId,
+  'status' : WalletTxStatus,
+  'userId' : UserId,
+  'description' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'withdrawalMethod' : IDL.Opt(WithdrawalMethod),
+  'txType' : WalletTxType,
+  'amount' : IDL.Float64,
+});
+export const WalletInfo = IDL.Record({
+  'balance' : IDL.Float64,
+  'transactions' : IDL.Vec(WalletTransaction),
+});
 export const NotificationId = IDL.Nat;
 export const NotificationType = IDL.Variant({
+  'referralReel' : IDL.Null,
   'like' : IDL.Null,
   'comment' : IDL.Null,
+  'referralFollowers' : IDL.Null,
+  'referralSignup' : IDL.Null,
   'follow' : IDL.Null,
 });
 export const Notification = IDL.Record({
   'id' : NotificationId,
-  'createdAt' : Time,
+  'createdAt' : IDL.Int,
   'read' : IDL.Bool,
   'type' : NotificationType,
   'actorId' : UserId,
+  'message' : IDL.Opt(IDL.Text),
   'recipientId' : UserId,
   'postId' : IDL.Opt(PostId),
 });
+export const ReferralStats = IDL.Record({
+  'referralCode' : IDL.Text,
+  'totalReferrals' : IDL.Nat,
+  'totalEarned' : IDL.Float64,
+});
 
 export const idlService = IDL.Service({
-  '_caffeineStorageBlobIsLive' : IDL.Func(
-      [IDL.Vec(IDL.Nat8)],
-      [IDL.Bool],
+  '_initializeAccessControl' : IDL.Func([], [], []),
+  'adminApproveWithdrawal' : IDL.Func([TxId], [], []),
+  'adminGetAnalytics' : IDL.Func([], [AdminAnalytics], ['query']),
+  'adminGetFlaggedPosts' : IDL.Func([], [IDL.Vec(AdminPostInfo)], ['query']),
+  'adminGetPosts' : IDL.Func(
+      [IDL.Nat, IDL.Nat],
+      [IDL.Vec(AdminPostInfo)],
       ['query'],
     ),
-  '_caffeineStorageBlobsToDelete' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+  'adminGetReferralStats' : IDL.Func([], [AdminReferralStats], ['query']),
+  'adminGetUsers' : IDL.Func(
+      [IDL.Nat, IDL.Nat],
+      [IDL.Vec(AdminUserInfo)],
       ['query'],
     ),
-  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
-      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+  'adminGetWithdrawalRequests' : IDL.Func(
       [],
-      [],
+      [IDL.Vec(WithdrawalRequest)],
+      ['query'],
     ),
-  '_caffeineStorageCreateCertificate' : IDL.Func(
+  'adminRejectWithdrawal' : IDL.Func([TxId, IDL.Text], [], []),
+  'adminRemovePost' : IDL.Func([PostId], [], []),
+  'adminSearchUsers' : IDL.Func(
       [IDL.Text],
-      [_CaffeineStorageCreateCertificateResult],
-      [],
+      [IDL.Vec(AdminUserInfo)],
+      ['query'],
     ),
-  '_caffeineStorageRefillCashier' : IDL.Func(
-      [IDL.Opt(_CaffeineStorageRefillInformation)],
-      [_CaffeineStorageRefillResult],
-      [],
-    ),
-  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'adminSetAdmin' : IDL.Func([IDL.Principal], [], []),
+  'adminSuspendUser' : IDL.Func([IDL.Principal], [], []),
+  'adminUnsuspendUser' : IDL.Func([IDL.Principal], [], []),
+  'approveWithdrawal' : IDL.Func([TxId], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createComment' : IDL.Func([PostId, IDL.Text], [Comment], []),
-  'createPost' : IDL.Func([ExternalBlob, MediaType, IDL.Text], [Post], []),
+  'createPost' : IDL.Func(
+      [IDL.Text, MediaType, IDL.Text, IDL.Opt(IDL.Text), IDL.Vec(IDL.Text)],
+      [Post],
+      [],
+    ),
+  'flagPost' : IDL.Func([PostId], [], []),
   'followUser' : IDL.Func([UserId], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -115,23 +210,47 @@ export const idlService = IDL.Service({
   'getFollowers' : IDL.Func([UserId], [IDL.Vec(UserId)], ['query']),
   'getFollowing' : IDL.Func([UserId], [IDL.Vec(UserId)], ['query']),
   'getHomeFeed' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+  'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
   'getPost' : IDL.Func([PostId], [IDL.Opt(Post)], ['query']),
   'getPostComments' : IDL.Func([PostId], [IDL.Vec(Comment)], ['query']),
   'getPostLikes' : IDL.Func([PostId], [IDL.Vec(UserId)], ['query']),
   'getRecentConversations' : IDL.Func([], [IDL.Vec(UserId)], ['query']),
+  'getReferralStats' : IDL.Func([], [ReferralStats], ['query']),
   'getUserPosts' : IDL.Func([UserId], [IDL.Vec(Post)], ['query']),
   'getUserProfile' : IDL.Func([UserId], [IDL.Opt(UserProfile)], ['query']),
+  'getWithdrawalRequests' : IDL.Func(
+      [],
+      [IDL.Vec(WalletTransaction)],
+      ['query'],
+    ),
+  'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'markNotificationsAsRead' : IDL.Func([IDL.Vec(NotificationId)], [], []),
-  'registerUser' : IDL.Func([IDL.Text, IDL.Text], [UserProfile], []),
+  'registerUser' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [UserProfile],
+      [],
+    ),
+  'rejectWithdrawal' : IDL.Func([TxId], [], []),
+  'requestWithdrawal' : IDL.Func(
+      [IDL.Float64, WithdrawalMethod],
+      [IDL.Variant({ 'ok' : WalletTransaction, 'err' : IDL.Text })],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchUsers' : IDL.Func([IDL.Text], [IDL.Vec(UserProfile)], ['query']),
   'sendMessage' : IDL.Func([UserId, IDL.Text], [Message], []),
   'toggleLike' : IDL.Func([PostId], [IDL.Bool], []),
   'unfollowUser' : IDL.Func([UserId], [], []),
   'updateProfile' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Opt(ExternalBlob)],
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+        IDL.Vec(IDL.Text),
+      ],
       [UserProfile],
       [],
     ),
@@ -140,102 +259,197 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  const TxId = IDL.Nat;
+  const AdminAnalytics = IDL.Record({
+    'pendingWithdrawals' : IDL.Nat,
+    'totalUsers' : IDL.Nat,
+    'totalWithdrawals' : IDL.Float64,
+    'totalPosts' : IDL.Nat,
+    'newUsersThisWeek' : IDL.Nat,
+    'totalReels' : IDL.Nat,
+  });
+  const PostId = IDL.Nat;
+  const UserId = IDL.Principal;
+  const MediaType = IDL.Variant({ 'video' : IDL.Null, 'photo' : IDL.Null });
+  const AdminPostInfo = IDL.Record({
+    'id' : PostId,
+    'likeCount' : IDL.Nat,
+    'authorId' : UserId,
+    'createdAt' : IDL.Int,
+    'caption' : IDL.Text,
+    'commentCount' : IDL.Nat,
+    'mediaType' : MediaType,
+    'isFlagged' : IDL.Bool,
+    'flagCount' : IDL.Nat,
+  });
+  const AdminReferralStats = IDL.Record({
+    'totalReferrals' : IDL.Nat,
+    'totalPaid' : IDL.Float64,
+    'topReferrers' : IDL.Vec(
+      IDL.Record({ 'username' : IDL.Text, 'earnings' : IDL.Float64 })
+    ),
+    'pendingPayout' : IDL.Float64,
+  });
+  const AdminUserInfo = IDL.Record({
+    'postCount' : IDL.Nat,
+    'username' : IDL.Text,
+    'displayName' : IDL.Text,
+    'userId' : UserId,
+    'joinedAt' : IDL.Int,
+    'isActive' : IDL.Bool,
+    'isSuspended' : IDL.Bool,
+    'followerCount' : IDL.Nat,
+  });
+  const WithdrawalStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const WithdrawalRequest = IDL.Record({
+    'id' : TxId,
+    'status' : WithdrawalStatus,
     'method' : IDL.Text,
-    'blob_hash' : IDL.Text,
-  });
-  const _CaffeineStorageRefillInformation = IDL.Record({
-    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
-  });
-  const _CaffeineStorageRefillResult = IDL.Record({
-    'success' : IDL.Opt(IDL.Bool),
-    'topped_up_amount' : IDL.Opt(IDL.Nat),
+    'userId' : UserId,
+    'createdAt' : IDL.Int,
+    'rejectionReason' : IDL.Opt(IDL.Text),
+    'amount' : IDL.Float64,
+    'accountDetails' : IDL.Text,
   });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const PostId = IDL.Nat;
-  const UserId = IDL.Principal;
-  const Time = IDL.Int;
   const Comment = IDL.Record({
     'authorId' : UserId,
-    'createdAt' : Time,
+    'createdAt' : IDL.Int,
     'text' : IDL.Text,
     'postId' : PostId,
   });
-  const ExternalBlob = IDL.Vec(IDL.Nat8);
-  const MediaType = IDL.Variant({ 'video' : IDL.Null, 'photo' : IDL.Null });
   const Post = IDL.Record({
     'id' : PostId,
-    'media' : ExternalBlob,
     'authorId' : UserId,
-    'createdAt' : Time,
+    'createdAt' : IDL.Int,
+    'tags' : IDL.Vec(IDL.Text),
+    'mediaUrl' : IDL.Text,
     'caption' : IDL.Text,
     'mediaType' : MediaType,
+    'location' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'bio' : IDL.Text,
     'username' : IDL.Text,
     'displayName' : IDL.Text,
-    'profilePhoto' : IDL.Opt(ExternalBlob),
+    'socialLinks' : IDL.Vec(IDL.Text),
+    'profilePhoto' : IDL.Opt(IDL.Text),
+    'pronouns' : IDL.Opt(IDL.Text),
   });
   const MessageId = IDL.Nat;
   const Message = IDL.Record({
     'id' : MessageId,
-    'createdAt' : Time,
+    'createdAt' : IDL.Int,
     'text' : IDL.Text,
     'receiverId' : UserId,
     'senderId' : UserId,
   });
+  const WalletTxStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'completed' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const WithdrawalMethod = IDL.Variant({
+    'upi' : IDL.Text,
+    'bankTransfer' : IDL.Record({
+      'ifsc' : IDL.Text,
+      'accountNumber' : IDL.Text,
+    }),
+  });
+  const WalletTxType = IDL.Variant({
+    'referralReel' : IDL.Null,
+    'withdrawal' : IDL.Null,
+    'referralFollowers' : IDL.Null,
+    'referralSignup' : IDL.Null,
+  });
+  const WalletTransaction = IDL.Record({
+    'id' : TxId,
+    'status' : WalletTxStatus,
+    'userId' : UserId,
+    'description' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'withdrawalMethod' : IDL.Opt(WithdrawalMethod),
+    'txType' : WalletTxType,
+    'amount' : IDL.Float64,
+  });
+  const WalletInfo = IDL.Record({
+    'balance' : IDL.Float64,
+    'transactions' : IDL.Vec(WalletTransaction),
+  });
   const NotificationId = IDL.Nat;
   const NotificationType = IDL.Variant({
+    'referralReel' : IDL.Null,
     'like' : IDL.Null,
     'comment' : IDL.Null,
+    'referralFollowers' : IDL.Null,
+    'referralSignup' : IDL.Null,
     'follow' : IDL.Null,
   });
   const Notification = IDL.Record({
     'id' : NotificationId,
-    'createdAt' : Time,
+    'createdAt' : IDL.Int,
     'read' : IDL.Bool,
     'type' : NotificationType,
     'actorId' : UserId,
+    'message' : IDL.Opt(IDL.Text),
     'recipientId' : UserId,
     'postId' : IDL.Opt(PostId),
   });
+  const ReferralStats = IDL.Record({
+    'referralCode' : IDL.Text,
+    'totalReferrals' : IDL.Nat,
+    'totalEarned' : IDL.Float64,
+  });
   
   return IDL.Service({
-    '_caffeineStorageBlobIsLive' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [IDL.Bool],
+    '_initializeAccessControl' : IDL.Func([], [], []),
+    'adminApproveWithdrawal' : IDL.Func([TxId], [], []),
+    'adminGetAnalytics' : IDL.Func([], [AdminAnalytics], ['query']),
+    'adminGetFlaggedPosts' : IDL.Func([], [IDL.Vec(AdminPostInfo)], ['query']),
+    'adminGetPosts' : IDL.Func(
+        [IDL.Nat, IDL.Nat],
+        [IDL.Vec(AdminPostInfo)],
         ['query'],
       ),
-    '_caffeineStorageBlobsToDelete' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+    'adminGetReferralStats' : IDL.Func([], [AdminReferralStats], ['query']),
+    'adminGetUsers' : IDL.Func(
+        [IDL.Nat, IDL.Nat],
+        [IDL.Vec(AdminUserInfo)],
         ['query'],
       ),
-    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
-        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+    'adminGetWithdrawalRequests' : IDL.Func(
         [],
-        [],
+        [IDL.Vec(WithdrawalRequest)],
+        ['query'],
       ),
-    '_caffeineStorageCreateCertificate' : IDL.Func(
+    'adminRejectWithdrawal' : IDL.Func([TxId, IDL.Text], [], []),
+    'adminRemovePost' : IDL.Func([PostId], [], []),
+    'adminSearchUsers' : IDL.Func(
         [IDL.Text],
-        [_CaffeineStorageCreateCertificateResult],
-        [],
+        [IDL.Vec(AdminUserInfo)],
+        ['query'],
       ),
-    '_caffeineStorageRefillCashier' : IDL.Func(
-        [IDL.Opt(_CaffeineStorageRefillInformation)],
-        [_CaffeineStorageRefillResult],
-        [],
-      ),
-    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'adminSetAdmin' : IDL.Func([IDL.Principal], [], []),
+    'adminSuspendUser' : IDL.Func([IDL.Principal], [], []),
+    'adminUnsuspendUser' : IDL.Func([IDL.Principal], [], []),
+    'approveWithdrawal' : IDL.Func([TxId], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createComment' : IDL.Func([PostId, IDL.Text], [Comment], []),
-    'createPost' : IDL.Func([ExternalBlob, MediaType, IDL.Text], [Post], []),
+    'createPost' : IDL.Func(
+        [IDL.Text, MediaType, IDL.Text, IDL.Opt(IDL.Text), IDL.Vec(IDL.Text)],
+        [Post],
+        [],
+      ),
+    'flagPost' : IDL.Func([PostId], [], []),
     'followUser' : IDL.Func([UserId], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -244,23 +458,47 @@ export const idlFactory = ({ IDL }) => {
     'getFollowers' : IDL.Func([UserId], [IDL.Vec(UserId)], ['query']),
     'getFollowing' : IDL.Func([UserId], [IDL.Vec(UserId)], ['query']),
     'getHomeFeed' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Vec(Post)], ['query']),
+    'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
     'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
     'getPost' : IDL.Func([PostId], [IDL.Opt(Post)], ['query']),
     'getPostComments' : IDL.Func([PostId], [IDL.Vec(Comment)], ['query']),
     'getPostLikes' : IDL.Func([PostId], [IDL.Vec(UserId)], ['query']),
     'getRecentConversations' : IDL.Func([], [IDL.Vec(UserId)], ['query']),
+    'getReferralStats' : IDL.Func([], [ReferralStats], ['query']),
     'getUserPosts' : IDL.Func([UserId], [IDL.Vec(Post)], ['query']),
     'getUserProfile' : IDL.Func([UserId], [IDL.Opt(UserProfile)], ['query']),
+    'getWithdrawalRequests' : IDL.Func(
+        [],
+        [IDL.Vec(WalletTransaction)],
+        ['query'],
+      ),
+    'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'markNotificationsAsRead' : IDL.Func([IDL.Vec(NotificationId)], [], []),
-    'registerUser' : IDL.Func([IDL.Text, IDL.Text], [UserProfile], []),
+    'registerUser' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+        [UserProfile],
+        [],
+      ),
+    'rejectWithdrawal' : IDL.Func([TxId], [], []),
+    'requestWithdrawal' : IDL.Func(
+        [IDL.Float64, WithdrawalMethod],
+        [IDL.Variant({ 'ok' : WalletTransaction, 'err' : IDL.Text })],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchUsers' : IDL.Func([IDL.Text], [IDL.Vec(UserProfile)], ['query']),
     'sendMessage' : IDL.Func([UserId, IDL.Text], [Message], []),
     'toggleLike' : IDL.Func([PostId], [IDL.Bool], []),
     'unfollowUser' : IDL.Func([UserId], [], []),
     'updateProfile' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Opt(ExternalBlob)],
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+          IDL.Vec(IDL.Text),
+        ],
         [UserProfile],
         [],
       ),

@@ -269,7 +269,7 @@ function ReelCard({ post, isActive }: ReelCardProps) {
     setCommentText("");
   }, [commentText, createComment, post.id]);
 
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
 
   // Parse caption metadata
   const {
@@ -308,7 +308,7 @@ function ReelCard({ post, isActive }: ReelCardProps) {
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
-      a.download = `vibegrom_reel_${post.id.toString()}.mp4`;
+      a.download = `butki_reel_${post.id.toString()}.mp4`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

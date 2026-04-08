@@ -57,9 +57,7 @@ export function HomePage() {
           WebkitBackdropFilter: "blur(16px)",
         }}
       >
-        <h1 className="text-2xl font-bold font-display gradient-text">
-          VibeGrom
-        </h1>
+        <h1 className="text-2xl font-bold font-display gradient-text">Butki</h1>
         <div className="flex items-center gap-1">
           {/* Messages */}
           <Link

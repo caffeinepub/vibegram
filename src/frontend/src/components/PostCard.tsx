@@ -166,7 +166,7 @@ export function PostCard({
   }, [post.id]);
 
   const handleReport = useCallback(() => {
-    toast.success("Post reported. Thank you for keeping VibeGrom safe.");
+    toast.success("Post reported. Thank you for keeping Butki safe.");
   }, []);
 
   const handleBlockUser = useCallback(() => {
@@ -194,7 +194,7 @@ export function PostCard({
     }
   }, []);
 
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
 
   // Parse caption metadata
   const {

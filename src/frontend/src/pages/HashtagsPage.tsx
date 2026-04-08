@@ -10,7 +10,7 @@ import { useExploreFeed } from "../hooks/useQueries";
 // ─── Post thumbnail (reuse pattern from ExplorePage) ─────────────────────────
 
 function HashtagPostTile({ post }: { post: Post }) {
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
 
   return (
     <div className="aspect-square rounded-xl overflow-hidden bg-secondary relative group">

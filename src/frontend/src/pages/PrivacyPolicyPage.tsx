@@ -71,9 +71,8 @@ export function PrivacyPolicyPage() {
           style={{ background: "oklch(0.07 0.005 270)" }}
         >
           <p className="text-sm text-muted-foreground leading-relaxed">
-            VibeGrom is committed to protecting your privacy. This policy
-            explains how we collect, use, and safeguard your personal
-            information.
+            Butki is committed to protecting your privacy. This policy explains
+            how we collect, use, and safeguard your personal information.
           </p>
           <p className="text-xs text-muted-foreground/70 mt-3">
             Last updated: January 2026
@@ -82,7 +81,7 @@ export function PrivacyPolicyPage() {
 
         {/* Sections */}
         <PolicySection icon={Database} title="Data We Collect">
-          We collect only the information necessary to operate VibeGrom: your
+          We collect only the information necessary to operate Butki: your
           username, display name, bio, and profile photo. We may also store
           posts, stories, reels, and messages you create on the platform. No
           sensitive personal data such as real name, address, or financial
@@ -90,7 +89,7 @@ export function PrivacyPolicyPage() {
         </PolicySection>
 
         <PolicySection icon={Eye} title="How We Use Data">
-          Your data is used solely to provide VibeGrom services — showing your
+          Your data is used solely to provide Butki services — showing your
           profile to followers, delivering your posts in feeds, and enabling
           messaging. We do not sell, rent, or share your personal data with
           third parties for advertising purposes. Usage analytics may be
@@ -114,15 +113,15 @@ export function PrivacyPolicyPage() {
         </PolicySection>
 
         <PolicySection icon={Shield} title="Contact">
-          If you have questions or concerns about your privacy on VibeGrom,
-          please use the in-app Help section under Settings &gt; Support &gt;
-          Help. Our team reviews all privacy inquiries within 5 business days.
+          If you have questions or concerns about your privacy on Butki, please
+          use the in-app Help section under Settings &gt; Support &gt; Help. Our
+          team reviews all privacy inquiries within 5 business days.
         </PolicySection>
 
         {/* Footer */}
         <div className="text-center py-4 space-y-1">
           <p className="text-xs text-muted-foreground/60">
-            © 2026 VibeGrom. All Rights Reserved.
+            © 2026 Butki. All Rights Reserved.
           </p>
           <p className="text-xs text-muted-foreground/60">
             Developed by{" "}

@@ -1,0 +1,232 @@
+type WithdrawalStatus = 
+ variant {
+   approved;
+   pending;
+   rejected;
+ };
+type WithdrawalRequest = 
+ record {
+   accountDetails: text;
+   amount: float64;
+   createdAt: int;
+   id: TxId;
+   method: text;
+   rejectionReason: opt text;
+   status: WithdrawalStatus;
+   userId: UserId;
+ };
+type WithdrawalMethod = 
+ variant {
+   bankTransfer: record {
+                   accountNumber: text;
+                   ifsc: text;
+                 };
+   upi: text;
+ };
+type WalletTxType = 
+ variant {
+   referralFollowers;
+   referralReel;
+   referralSignup;
+   withdrawal;
+ };
+type WalletTxStatus = 
+ variant {
+   approved;
+   completed;
+   pending;
+   rejected;
+ };
+type WalletTransaction = 
+ record {
+   amount: float64;
+   description: text;
+   id: TxId;
+   status: WalletTxStatus;
+   timestamp: int;
+   txType: WalletTxType;
+   userId: UserId;
+   withdrawalMethod: opt WithdrawalMethod;
+ };
+type WalletInfo = 
+ record {
+   balance: float64;
+   transactions: vec WalletTransaction;
+ };
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = 
+ record {
+   bio: text;
+   displayName: text;
+   profilePhoto: opt text;
+   pronouns: opt text;
+   socialLinks: vec text;
+   username: text;
+ };
+type UserId = principal;
+type TxId = nat;
+type ReferralStats = 
+ record {
+   referralCode: text;
+   totalEarned: float64;
+   totalReferrals: nat;
+ };
+type PostId = nat;
+type Post = 
+ record {
+   authorId: UserId;
+   caption: text;
+   createdAt: int;
+   id: PostId;
+   location: opt text;
+   mediaType: MediaType;
+   mediaUrl: text;
+   tags: vec text;
+ };
+type NotificationType = 
+ variant {
+   comment;
+   follow;
+   like;
+   referralFollowers;
+   referralReel;
+   referralSignup;
+ };
+type NotificationId = nat;
+type Notification = 
+ record {
+   actorId: UserId;
+   createdAt: int;
+   id: NotificationId;
+   message: opt text;
+   postId: opt PostId;
+   read: bool;
+   recipientId: UserId;
+   "type": NotificationType;
+ };
+type MessageId = nat;
+type Message = 
+ record {
+   createdAt: int;
+   id: MessageId;
+   receiverId: UserId;
+   senderId: UserId;
+   "text": text;
+ };
+type MediaType = 
+ variant {
+   photo;
+   video;
+ };
+type Comment = 
+ record {
+   authorId: UserId;
+   createdAt: int;
+   postId: PostId;
+   "text": text;
+ };
+type AdminUserInfo = 
+ record {
+   displayName: text;
+   followerCount: nat;
+   isActive: bool;
+   isSuspended: bool;
+   joinedAt: int;
+   postCount: nat;
+   userId: UserId;
+   username: text;
+ };
+type AdminReferralStats = 
+ record {
+   pendingPayout: float64;
+   topReferrers: vec record {
+                       earnings: float64;
+                       username: text;
+                     };
+   totalPaid: float64;
+   totalReferrals: nat;
+ };
+type AdminPostInfo = 
+ record {
+   authorId: UserId;
+   caption: text;
+   commentCount: nat;
+   createdAt: int;
+   flagCount: nat;
+   id: PostId;
+   isFlagged: bool;
+   likeCount: nat;
+   mediaType: MediaType;
+ };
+type AdminAnalytics = 
+ record {
+   newUsersThisWeek: nat;
+   pendingWithdrawals: nat;
+   totalPosts: nat;
+   totalReels: nat;
+   totalUsers: nat;
+   totalWithdrawals: float64;
+ };
+service : {
+  _initializeAccessControl: () -> ();
+  adminApproveWithdrawal: (txId: TxId) -> ();
+  adminGetAnalytics: () -> (AdminAnalytics) query;
+  adminGetFlaggedPosts: () -> (vec AdminPostInfo) query;
+  adminGetPosts: (page: nat, pageSize: nat) -> (vec AdminPostInfo) query;
+  adminGetReferralStats: () -> (AdminReferralStats) query;
+  adminGetUsers: (page: nat, pageSize: nat) -> (vec AdminUserInfo) query;
+  adminGetWithdrawalRequests: () -> (vec WithdrawalRequest) query;
+  adminRejectWithdrawal: (txId: TxId, reason: text) -> ();
+  adminRemovePost: (postId: PostId) -> ();
+  adminSearchUsers: (searchQuery: text) -> (vec AdminUserInfo) query;
+  adminSetAdmin: (userId: principal) -> ();
+  adminSuspendUser: (userId: principal) -> ();
+  adminUnsuspendUser: (userId: principal) -> ();
+  approveWithdrawal: (txId: TxId) -> ();
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  createComment: (postId: PostId, "text": text) -> (Comment);
+  createPost: (mediaUrl: text, mediaType: MediaType, caption: text, location:
+   opt text, tags: vec text) -> (Post);
+  flagPost: (postId: PostId) -> ();
+  followUser: (followeeId: UserId) -> ();
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getConversation: (otherUserId: UserId) -> (vec Message) query;
+  getExploreFeed: (page: nat, pageSize: nat) -> (vec Post) query;
+  getFollowers: (userId: UserId) -> (vec UserId) query;
+  getFollowing: (userId: UserId) -> (vec UserId) query;
+  getHomeFeed: (page: nat, pageSize: nat) -> (vec Post) query;
+  getMyWallet: () -> (WalletInfo) query;
+  getNotifications: () -> (vec Notification) query;
+  getPost: (postId: PostId) -> (opt Post) query;
+  getPostComments: (postId: PostId) -> (vec Comment) query;
+  getPostLikes: (postId: PostId) -> (vec UserId) query;
+  getRecentConversations: () -> (vec UserId) query;
+  getReferralStats: () -> (ReferralStats) query;
+  getUserPosts: (userId: UserId) -> (vec Post) query;
+  getUserProfile: (userId: UserId) -> (opt UserProfile) query;
+  getWithdrawalRequests: () -> (vec WalletTransaction) query;
+  isAdmin: (userId: principal) -> (bool) query;
+  isCallerAdmin: () -> (bool) query;
+  markNotificationsAsRead: (notificationIds: vec NotificationId) -> ();
+  registerUser: (username: text, displayName: text, referralCode:
+   opt text) -> (UserProfile);
+  rejectWithdrawal: (txId: TxId) -> ();
+  requestWithdrawal: (amount: float64, method: WithdrawalMethod) ->
+   (variant {
+      err: text;
+      ok: WalletTransaction;
+    });
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  searchUsers: (prefix: text) -> (vec UserProfile) query;
+  sendMessage: (receiverId: UserId, "text": text) -> (Message);
+  toggleLike: (postId: PostId) -> (bool);
+  unfollowUser: (followeeId: UserId) -> ();
+  updateProfile: (displayName: text, bio: text, profilePhoto: opt text,
+   pronouns: opt text, socialLinks: vec text) -> (UserProfile);
+}

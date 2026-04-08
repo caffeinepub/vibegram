@@ -11,24 +11,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Play } from "lucide-react";
 import {
   Bell,
   Bookmark,
   Clapperboard,
+  Copy,
   ExternalLink,
   Grid3x3,
   Loader2,
+  Play,
   Plus,
   Settings,
   Share2,
   Tag,
+  Wallet,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalBlob } from "../backend";
 import type { Post } from "../backend.d";
 import { AvatarWithRing } from "../components/AvatarWithRing";
 import { PostDetailModal } from "../components/PostDetailModal";
@@ -40,7 +41,9 @@ import {
   useFollowers,
   useFollowing,
   useGetCallerUserProfile,
+  useGetMyWallet,
   useGetPost,
+  useGetReferralStats,
   useUpdateProfile,
   useUserPosts,
 } from "../hooks/useQueries";
@@ -89,7 +92,7 @@ function PostGridTile({
   post,
   onPostClick,
 }: { post: Post; onPostClick?: (post: Post) => void }) {
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl;
   return (
     <button
       type="button"
@@ -133,7 +136,7 @@ function SavedPostTile({ postId }: { postId: string }) {
   if (!post)
     return <div className="aspect-square rounded-xl bg-secondary opacity-40" />;
 
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl;
   return (
     <div className="aspect-square rounded-xl overflow-hidden bg-secondary relative group">
       {mediaUrl ? (
@@ -185,7 +188,6 @@ function EditProfileModal({
 }) {
   const [displayName, setDisplayName] = useState(currentDisplayName);
   const [bio, setBio] = useState(currentBio);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [pronouns, setPronouns] = useState(() =>
     getProfilePronouns(currentUsername),
   );
@@ -196,7 +198,6 @@ function EditProfileModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate URLs
     for (const link of links) {
       if (link.url && !/^https?:\/\/.+/.test(link.url)) {
         toast.error(
@@ -206,12 +207,13 @@ function EditProfileModal({
       }
     }
     try {
-      let profilePhoto: ExternalBlob | null = null;
-      if (photoFile) {
-        const bytes = new Uint8Array(await photoFile.arrayBuffer());
-        profilePhoto = ExternalBlob.fromBytes(bytes);
-      }
-      await updateProfile.mutateAsync({ displayName, bio, profilePhoto });
+      await updateProfile.mutateAsync({
+        displayName,
+        bio,
+        profilePhoto: null,
+        pronouns,
+        socialLinks: links.filter((l) => l.url).map((l) => l.url),
+      });
       saveProfilePronouns(currentUsername, pronouns);
       saveProfileLinks(
         currentUsername,
@@ -362,16 +364,6 @@ function EditProfileModal({
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-sm">Profile Photo</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-              className="bg-secondary border-border text-sm"
-              data-ocid="profile.photo.upload_button"
-            />
-          </div>
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
@@ -411,6 +403,8 @@ export function ProfilePage() {
   );
   const { data: followers = [] } = useFollowers(principalStr || null);
   const { data: following = [] } = useFollowing(principalStr || null);
+  const { data: referralStats } = useGetReferralStats();
+  const { data: walletInfo } = useGetMyWallet();
   const [editOpen, setEditOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -421,14 +415,20 @@ export function ProfilePage() {
     setPostModalOpen(true);
   };
 
-  // Verification: check localStorage or known usernames
   const isVerified =
-    profile?.username === "vibegrom" ||
+    profile?.username === "butki" ||
     (principalStr
       ? !!localStorage.getItem(`vg_verified_${principalStr.toString()}`)
       : false);
 
   const savedIds = getSavedPostIds();
+
+  const handleCopyReferral = () => {
+    if (referralStats?.referralCode) {
+      navigator.clipboard.writeText(referralStats.referralCode);
+      toast.success("Referral code copied!");
+    }
+  };
 
   if (profileLoading) {
     return (
@@ -480,7 +480,6 @@ export function ProfilePage() {
         </h1>
 
         <div className="flex items-center gap-1">
-          {/* Notifications bell */}
           <Link
             to="/notifications"
             data-ocid="profile.notifications.link"
@@ -490,7 +489,6 @@ export function ProfilePage() {
             <Bell size={20} />
           </Link>
 
-          {/* Share profile */}
           <button
             type="button"
             data-ocid="profile.share.button"
@@ -501,7 +499,6 @@ export function ProfilePage() {
             <Share2 size={20} />
           </button>
 
-          {/* Settings */}
           <Link
             to="/settings"
             data-ocid="profile.settings.link"
@@ -602,15 +599,60 @@ export function ProfilePage() {
               </div>
             )}
 
-          {/* Edit profile button */}
-          <Button
-            data-ocid="profile.edit.button"
-            onClick={() => setEditOpen(true)}
-            variant="outline"
-            className="w-full border-border hover:bg-secondary font-semibold h-9 text-sm"
-          >
-            Edit Profile
-          </Button>
+          {/* Wallet + Referral badges */}
+          <div className="flex gap-2 flex-wrap">
+            {walletInfo !== undefined && (
+              <Link
+                to="/wallet"
+                data-ocid="profile.wallet.link"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all hover:opacity-80"
+                style={{
+                  background: "oklch(0.55 0.2 150 / 0.15)",
+                  color: "oklch(0.75 0.2 150)",
+                  border: "1px solid oklch(0.55 0.2 150 / 0.35)",
+                }}
+              >
+                <Wallet size={12} />₹{walletInfo.balance.toFixed(0)} earned
+              </Link>
+            )}
+            {referralStats?.referralCode && (
+              <button
+                type="button"
+                onClick={handleCopyReferral}
+                data-ocid="profile.referral_code.button"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all hover:opacity-80"
+                style={{
+                  background: "oklch(0.62 0.22 295 / 0.12)",
+                  color: "oklch(0.72 0.18 295)",
+                  border: "1px solid oklch(0.62 0.22 295 / 0.3)",
+                }}
+                aria-label="Copy referral code"
+              >
+                <Copy size={12} />
+                {referralStats.referralCode}
+              </button>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <Button
+              data-ocid="profile.edit.button"
+              onClick={() => setEditOpen(true)}
+              variant="outline"
+              className="flex-1 border-border hover:bg-secondary font-semibold h-9 text-sm"
+            >
+              Edit Profile
+            </Button>
+            <Link
+              to="/wallet"
+              data-ocid="profile.wallet.button"
+              className="flex items-center gap-1.5 px-4 h-9 rounded-xl font-semibold text-sm border border-border hover:bg-secondary transition-colors"
+            >
+              <Wallet size={15} />
+              Wallet
+            </Link>
+          </div>
         </motion.div>
 
         {/* Story Highlights */}
@@ -670,7 +712,7 @@ export function ProfilePage() {
                   </div>
                   <p className="font-semibold text-sm">No posts yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Share your first vibe!
+                    Share your first vibe on Butki!
                   </p>
                 </div>
               ) : (
@@ -704,7 +746,7 @@ export function ProfilePage() {
                   </div>
                   <p className="font-semibold text-sm">No reels yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Share your first reel!
+                    Share your first reel on Butki!
                   </p>
                   <button
                     type="button"

@@ -10,18 +10,52 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AdminAnalytics {
+  'pendingWithdrawals' : bigint,
+  'totalUsers' : bigint,
+  'totalWithdrawals' : number,
+  'totalPosts' : bigint,
+  'newUsersThisWeek' : bigint,
+  'totalReels' : bigint,
+}
+export interface AdminPostInfo {
+  'id' : PostId,
+  'likeCount' : bigint,
+  'authorId' : UserId,
+  'createdAt' : bigint,
+  'caption' : string,
+  'commentCount' : bigint,
+  'mediaType' : MediaType,
+  'isFlagged' : boolean,
+  'flagCount' : bigint,
+}
+export interface AdminReferralStats {
+  'totalReferrals' : bigint,
+  'totalPaid' : number,
+  'topReferrers' : Array<{ 'username' : string, 'earnings' : number }>,
+  'pendingPayout' : number,
+}
+export interface AdminUserInfo {
+  'postCount' : bigint,
+  'username' : string,
+  'displayName' : string,
+  'userId' : UserId,
+  'joinedAt' : bigint,
+  'isActive' : boolean,
+  'isSuspended' : boolean,
+  'followerCount' : bigint,
+}
 export interface Comment {
   'authorId' : UserId,
-  'createdAt' : Time,
+  'createdAt' : bigint,
   'text' : string,
   'postId' : PostId,
 }
-export type ExternalBlob = Uint8Array;
 export type MediaType = { 'video' : null } |
   { 'photo' : null };
 export interface Message {
   'id' : MessageId,
-  'createdAt' : Time,
+  'createdAt' : bigint,
   'text' : string,
   'receiverId' : UserId,
   'senderId' : UserId,
@@ -29,68 +63,110 @@ export interface Message {
 export type MessageId = bigint;
 export interface Notification {
   'id' : NotificationId,
-  'createdAt' : Time,
+  'createdAt' : bigint,
   'read' : boolean,
   'type' : NotificationType,
   'actorId' : UserId,
+  'message' : [] | [string],
   'recipientId' : UserId,
   'postId' : [] | [PostId],
 }
 export type NotificationId = bigint;
-export type NotificationType = { 'like' : null } |
+export type NotificationType = { 'referralReel' : null } |
+  { 'like' : null } |
   { 'comment' : null } |
+  { 'referralFollowers' : null } |
+  { 'referralSignup' : null } |
   { 'follow' : null };
 export interface Post {
   'id' : PostId,
-  'media' : ExternalBlob,
   'authorId' : UserId,
-  'createdAt' : Time,
+  'createdAt' : bigint,
+  'tags' : Array<string>,
+  'mediaUrl' : string,
   'caption' : string,
   'mediaType' : MediaType,
+  'location' : [] | [string],
 }
 export type PostId = bigint;
-export type Time = bigint;
+export interface ReferralStats {
+  'referralCode' : string,
+  'totalReferrals' : bigint,
+  'totalEarned' : number,
+}
+export type TxId = bigint;
 export type UserId = Principal;
 export interface UserProfile {
   'bio' : string,
   'username' : string,
   'displayName' : string,
-  'profilePhoto' : [] | [ExternalBlob],
+  'socialLinks' : Array<string>,
+  'profilePhoto' : [] | [string],
+  'pronouns' : [] | [string],
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
-export interface _CaffeineStorageCreateCertificateResult {
+export interface WalletInfo {
+  'balance' : number,
+  'transactions' : Array<WalletTransaction>,
+}
+export interface WalletTransaction {
+  'id' : TxId,
+  'status' : WalletTxStatus,
+  'userId' : UserId,
+  'description' : string,
+  'timestamp' : bigint,
+  'withdrawalMethod' : [] | [WithdrawalMethod],
+  'txType' : WalletTxType,
+  'amount' : number,
+}
+export type WalletTxStatus = { 'pending' : null } |
+  { 'completed' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
+export type WalletTxType = { 'referralReel' : null } |
+  { 'withdrawal' : null } |
+  { 'referralFollowers' : null } |
+  { 'referralSignup' : null };
+export type WithdrawalMethod = { 'upi' : string } |
+  { 'bankTransfer' : { 'ifsc' : string, 'accountNumber' : string } };
+export interface WithdrawalRequest {
+  'id' : TxId,
+  'status' : WithdrawalStatus,
   'method' : string,
-  'blob_hash' : string,
+  'userId' : UserId,
+  'createdAt' : bigint,
+  'rejectionReason' : [] | [string],
+  'amount' : number,
+  'accountDetails' : string,
 }
-export interface _CaffeineStorageRefillInformation {
-  'proposed_top_up_amount' : [] | [bigint],
-}
-export interface _CaffeineStorageRefillResult {
-  'success' : [] | [boolean],
-  'topped_up_amount' : [] | [bigint],
-}
+export type WithdrawalStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
 export interface _SERVICE {
-  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
-  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
-  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
-    [Array<Uint8Array>],
-    undefined
-  >,
-  '_caffeineStorageCreateCertificate' : ActorMethod<
-    [string],
-    _CaffeineStorageCreateCertificateResult
-  >,
-  '_caffeineStorageRefillCashier' : ActorMethod<
-    [[] | [_CaffeineStorageRefillInformation]],
-    _CaffeineStorageRefillResult
-  >,
-  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  '_initializeAccessControl' : ActorMethod<[], undefined>,
+  'adminApproveWithdrawal' : ActorMethod<[TxId], undefined>,
+  'adminGetAnalytics' : ActorMethod<[], AdminAnalytics>,
+  'adminGetFlaggedPosts' : ActorMethod<[], Array<AdminPostInfo>>,
+  'adminGetPosts' : ActorMethod<[bigint, bigint], Array<AdminPostInfo>>,
+  'adminGetReferralStats' : ActorMethod<[], AdminReferralStats>,
+  'adminGetUsers' : ActorMethod<[bigint, bigint], Array<AdminUserInfo>>,
+  'adminGetWithdrawalRequests' : ActorMethod<[], Array<WithdrawalRequest>>,
+  'adminRejectWithdrawal' : ActorMethod<[TxId, string], undefined>,
+  'adminRemovePost' : ActorMethod<[PostId], undefined>,
+  'adminSearchUsers' : ActorMethod<[string], Array<AdminUserInfo>>,
+  'adminSetAdmin' : ActorMethod<[Principal], undefined>,
+  'adminSuspendUser' : ActorMethod<[Principal], undefined>,
+  'adminUnsuspendUser' : ActorMethod<[Principal], undefined>,
+  'approveWithdrawal' : ActorMethod<[TxId], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createComment' : ActorMethod<[PostId, string], Comment>,
-  'createPost' : ActorMethod<[ExternalBlob, MediaType, string], Post>,
+  'createPost' : ActorMethod<
+    [string, MediaType, string, [] | [string], Array<string>],
+    Post
+  >,
+  'flagPost' : ActorMethod<[PostId], undefined>,
   'followUser' : ActorMethod<[UserId], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -99,23 +175,33 @@ export interface _SERVICE {
   'getFollowers' : ActorMethod<[UserId], Array<UserId>>,
   'getFollowing' : ActorMethod<[UserId], Array<UserId>>,
   'getHomeFeed' : ActorMethod<[bigint, bigint], Array<Post>>,
+  'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getNotifications' : ActorMethod<[], Array<Notification>>,
   'getPost' : ActorMethod<[PostId], [] | [Post]>,
   'getPostComments' : ActorMethod<[PostId], Array<Comment>>,
   'getPostLikes' : ActorMethod<[PostId], Array<UserId>>,
   'getRecentConversations' : ActorMethod<[], Array<UserId>>,
+  'getReferralStats' : ActorMethod<[], ReferralStats>,
   'getUserPosts' : ActorMethod<[UserId], Array<Post>>,
   'getUserProfile' : ActorMethod<[UserId], [] | [UserProfile]>,
+  'getWithdrawalRequests' : ActorMethod<[], Array<WalletTransaction>>,
+  'isAdmin' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'markNotificationsAsRead' : ActorMethod<[Array<NotificationId>], undefined>,
-  'registerUser' : ActorMethod<[string, string], UserProfile>,
+  'registerUser' : ActorMethod<[string, string, [] | [string]], UserProfile>,
+  'rejectWithdrawal' : ActorMethod<[TxId], undefined>,
+  'requestWithdrawal' : ActorMethod<
+    [number, WithdrawalMethod],
+    { 'ok' : WalletTransaction } |
+      { 'err' : string }
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchUsers' : ActorMethod<[string], Array<UserProfile>>,
   'sendMessage' : ActorMethod<[UserId, string], Message>,
   'toggleLike' : ActorMethod<[PostId], boolean>,
   'unfollowUser' : ActorMethod<[UserId], undefined>,
   'updateProfile' : ActorMethod<
-    [string, string, [] | [ExternalBlob]],
+    [string, string, [] | [string], [] | [string], Array<string>],
     UserProfile
   >,
 }

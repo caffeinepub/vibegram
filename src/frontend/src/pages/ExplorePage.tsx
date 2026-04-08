@@ -53,7 +53,7 @@ interface ExplorePostTileProps {
 }
 
 function ExplorePostTile({ post }: ExplorePostTileProps) {
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
   return (
     <div className="aspect-square rounded-xl overflow-hidden bg-secondary relative group">
       {mediaUrl ? (
@@ -90,7 +90,7 @@ function ExplorePostTile({ post }: ExplorePostTileProps) {
 
 /** Vertical reel thumbnail for horizontal scroll */
 function ReelThumbnail({ post }: { post: Post }) {
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
   const caption = post.caption.startsWith("__reel__")
     ? post.caption.slice(8)
     : post.caption;

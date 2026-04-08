@@ -25,7 +25,7 @@ function SavedPostTile({ postId }: { postId: string }) {
     return <div className="aspect-square rounded-xl bg-secondary opacity-40" />;
   }
 
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl || null;
 
   return (
     <div className="aspect-square rounded-xl overflow-hidden bg-secondary relative group">

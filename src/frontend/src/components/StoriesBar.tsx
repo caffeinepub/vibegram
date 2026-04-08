@@ -24,7 +24,7 @@ function StoryAvatar({
   isCloseFriend,
   onClick,
 }: StoryAvatarProps) {
-  const photoUrl = profile?.profilePhoto?.getDirectURL();
+  const photoUrl = profile?.profilePhoto || null;
   const initials = profile
     ? (profile.displayName || profile.username || "?")
         .split(" ")

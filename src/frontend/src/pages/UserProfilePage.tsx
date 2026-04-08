@@ -3,8 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Principal } from "@dfinity/principal";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Grid3x3, MessageCircle } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Grid3x3, Loader2, MessageCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { Post } from "../backend.d";
@@ -22,7 +21,7 @@ import {
 import { formatCount } from "../utils/helpers";
 
 function PostGridTile({ post }: { post: Post }) {
-  const mediaUrl = post.media?.getDirectURL();
+  const mediaUrl = post.mediaUrl;
   return (
     <div className="aspect-square rounded-none overflow-hidden bg-secondary relative group">
       {mediaUrl ? (
@@ -181,7 +180,7 @@ export function UserProfilePage() {
                 <h2 className="text-lg font-bold font-display leading-tight">
                   {profile?.displayName || "Unknown User"}
                 </h2>
-                {profile?.username === "vibegrom" && (
+                {profile?.username === "butki" && (
                   <VerificationBadge size="md" />
                 )}
               </div>
@@ -270,7 +269,7 @@ export function UserProfilePage() {
             >
               <p className="font-semibold text-sm">No posts yet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                This user hasn't posted yet
+                This user hasn't posted on Butki yet
               </p>
             </div>
           ) : (

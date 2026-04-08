@@ -13,6 +13,22 @@ import {
 } from "../hooks/useQueries";
 import { formatRelativeTime } from "../utils/helpers";
 
+// ─── Referral reward amounts mapping ─────────────────────────────────────────
+
+const REFERRAL_AMOUNTS: Partial<Record<NotificationType, string>> = {
+  [NotificationType.referralSignup]: "₹10",
+  [NotificationType.referralReel]: "₹20",
+  [NotificationType.referralFollowers]: "₹50",
+};
+
+function isReferralType(type: NotificationType): boolean {
+  return (
+    type === NotificationType.referralSignup ||
+    type === NotificationType.referralReel ||
+    type === NotificationType.referralFollowers
+  );
+}
+
 function NotificationIcon({ type }: { type: NotificationType }) {
   if (type === NotificationType.like) {
     return (
@@ -28,6 +44,21 @@ function NotificationIcon({ type }: { type: NotificationType }) {
       </div>
     );
   }
+  if (isReferralType(type)) {
+    return (
+      <div
+        className="rounded-full p-1.5"
+        style={{ background: "oklch(0.55 0.18 150 / 0.2)" }}
+      >
+        <span
+          className="text-[11px] font-bold leading-none"
+          style={{ color: "oklch(0.75 0.2 150)" }}
+        >
+          ₹
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="bg-vibe-purple/20 rounded-full p-1.5">
       <UserPlus size={12} className="text-vibe-purple" />
@@ -35,10 +66,22 @@ function NotificationIcon({ type }: { type: NotificationType }) {
   );
 }
 
-function NotificationText({ type }: { type: NotificationType }) {
+function NotificationText({
+  type,
+  message,
+}: { type: NotificationType; message?: string }) {
+  if (message) return <span>{message}</span>;
   if (type === NotificationType.like) return <span>liked your post</span>;
   if (type === NotificationType.comment)
     return <span>commented on your post</span>;
+  if (type === NotificationType.referralSignup)
+    return <span>joined Butki using your referral code! You earned ₹10</span>;
+  if (type === NotificationType.referralReel)
+    return (
+      <span>posted their first reel via your referral! You earned ₹20</span>
+    );
+  if (type === NotificationType.referralFollowers)
+    return <span>reached 100 followers via your referral! You earned ₹50</span>;
   return <span>started following you</span>;
 }
 
@@ -50,6 +93,8 @@ function NotificationItem({
   index: number;
 }) {
   const { data: actor } = useGetUserProfile(notification.actorId);
+  const isReferral = isReferralType(notification.type);
+  const rewardAmount = REFERRAL_AMOUNTS[notification.type];
 
   return (
     <motion.div
@@ -58,7 +103,8 @@ function NotificationItem({
       transition={{ delay: index * 0.05 }}
       className={cn(
         "flex items-center gap-3 py-3.5 px-4 transition-colors",
-        !notification.read && "bg-vibe-purple/5",
+        !notification.read && !isReferral && "bg-vibe-purple/5",
+        !notification.read && isReferral && "bg-emerald-500/5",
       )}
       data-ocid={`notifications.item.${index}`}
     >
@@ -72,10 +118,24 @@ function NotificationItem({
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug">
           <span className="font-semibold">{actor?.username || "Someone"}</span>{" "}
-          <span className="text-muted-foreground">
-            <NotificationText type={notification.type} />
+          <span
+            className={isReferral ? "font-medium" : "text-muted-foreground"}
+            style={isReferral ? { color: "oklch(0.72 0.18 150)" } : undefined}
+          >
+            <NotificationText
+              type={notification.type}
+              message={notification.message}
+            />
           </span>
         </p>
+        {isReferral && rewardAmount && (
+          <p
+            className="text-xs font-bold mt-0.5"
+            style={{ color: "oklch(0.75 0.2 150)" }}
+          >
+            💰 {rewardAmount} added to your wallet
+          </p>
+        )}
         <p className="text-xs text-muted-foreground mt-0.5">
           {formatRelativeTime(notification.createdAt)}
         </p>
@@ -84,7 +144,11 @@ function NotificationItem({
       {!notification.read && (
         <div
           className="w-2 h-2 rounded-full flex-shrink-0"
-          style={{ background: "oklch(var(--vibe-purple))" }}
+          style={{
+            background: isReferral
+              ? "oklch(0.65 0.2 150)"
+              : "oklch(var(--vibe-purple))",
+          }}
         />
       )}
     </motion.div>
@@ -170,13 +234,13 @@ export function NotificationsPage() {
               All caught up!
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              You don't have any notifications yet. Interact with others to
-              start the fun!
+              You don't have any notifications yet. Interact with others on
+              Butki to start the fun!
             </p>
           </motion.div>
         ) : (
           <div>
-            {/* VibeGrom welcome banner */}
+            {/* Butki welcome banner */}
             <div
               className="mx-4 mt-3 mb-1 rounded-2xl overflow-hidden"
               style={{
@@ -186,20 +250,51 @@ export function NotificationsPage() {
               }}
             >
               <div className="flex items-center gap-3 p-3.5">
-                <img
-                  src="/assets/uploads/InShot_20260306_023848346-1.png"
-                  alt="VibeGrom"
-                  className="w-10 h-10 rounded-xl object-cover shrink-0"
-                />
+                <div
+                  className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.65 0.25 350))",
+                  }}
+                >
+                  <span className="text-white font-bold font-display text-sm">
+                    B
+                  </span>
+                </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">VibeGrom</p>
+                  <p className="text-sm font-semibold text-white">Butki</p>
                   <p className="text-xs text-white/70 mt-0.5 leading-snug">
-                    Welcome to VibeGrom 2.0! Now with Reels, Live, Stories &
-                    more. 🎉
+                    Welcome to Butki! Share, earn & connect. 🎉
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Referral rewards section */}
+            {unread.some((n) => isReferralType(n.type)) && (
+              <div
+                className="mx-4 mt-2 mb-1 rounded-2xl p-3.5"
+                style={{
+                  background: "oklch(0.55 0.18 150 / 0.08)",
+                  border: "1px solid oklch(0.55 0.18 150 / 0.25)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💰</span>
+                  <div>
+                    <p
+                      className="text-sm font-bold"
+                      style={{ color: "oklch(0.75 0.2 150)" }}
+                    >
+                      You have referral rewards!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Check your wallet to withdraw your earnings
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Unread */}
             {unread.length > 0 && (

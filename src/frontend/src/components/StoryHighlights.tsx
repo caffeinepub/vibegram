@@ -322,7 +322,7 @@ function CreateHighlightSheet({
                   {storyPosts.map((post) => {
                     const postId = post.id.toString();
                     const isSelected = selectedStoryIds.has(postId);
-                    const mediaUrl = post.media?.getDirectURL();
+                    const mediaUrl = post.mediaUrl || null;
                     return (
                       <button
                         key={postId}
@@ -454,7 +454,7 @@ function HighlightViewerSheet({
   if (!highlight) return null;
 
   const currentStory = highlightStories[currentIndex];
-  const mediaUrl = currentStory?.media?.getDirectURL();
+  const mediaUrl = currentStory?.mediaUrl || null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

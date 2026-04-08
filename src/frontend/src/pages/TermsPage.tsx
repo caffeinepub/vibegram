@@ -73,7 +73,7 @@ export function TermsPage() {
           style={{ background: "oklch(0.07 0.005 270)" }}
         >
           <p className="text-sm text-muted-foreground leading-relaxed">
-            By accessing or using VibeGrom, you agree to be bound by these Terms
+            By accessing or using Butki, you agree to be bound by these Terms
             and Conditions. Please read them carefully before using the
             platform.
           </p>
@@ -84,9 +84,9 @@ export function TermsPage() {
 
         {/* Sections */}
         <TermsSection icon={BookOpen} title="Acceptable Use">
-          You agree to use VibeGrom only for lawful purposes and in a way that
-          does not infringe the rights of others. You must not use the platform
-          to harass, abuse, threaten, or discriminate against any individual or
+          You agree to use Butki only for lawful purposes and in a way that does
+          not infringe the rights of others. You must not use the platform to
+          harass, abuse, threaten, or discriminate against any individual or
           group. Spam, unsolicited messages, and bot activity are strictly
           prohibited.
         </TermsSection>
@@ -105,19 +105,19 @@ export function TermsPage() {
           account credentials. You must not impersonate other users or
           misrepresent your identity. Each user is permitted one account;
           creating multiple accounts to evade bans or restrictions is
-          prohibited. You must be at least 13 years of age to use VibeGrom.
+          prohibited. You must be at least 13 years of age to use Butki.
         </TermsSection>
 
         <TermsSection icon={Gavel} title="Enforcement">
-          VibeGrom reserves the right to remove any content, suspend, or
+          Butki reserves the right to remove any content, suspend, or
           permanently ban accounts that violate these terms without prior
-          notice. Appeals may be submitted through the Help section. VibeGrom is
+          notice. Appeals may be submitted through the Help section. Butki is
           not liable for any loss of data, content, or access resulting from
           enforcement actions.
         </TermsSection>
 
         <TermsSection icon={FileCheck} title="Agreement">
-          By continuing to use VibeGrom, you confirm that you have read,
+          By continuing to use Butki, you confirm that you have read,
           understood, and agree to these Terms and Conditions. These terms may
           be updated periodically, and continued use of the platform constitutes
           acceptance of the revised terms. Notifications of significant changes
@@ -127,7 +127,7 @@ export function TermsPage() {
         {/* Footer */}
         <div className="text-center py-4 space-y-1">
           <p className="text-xs text-muted-foreground/60">
-            © 2026 VibeGrom. All Rights Reserved.
+            © 2026 Butki. All Rights Reserved.
           </p>
           <p className="text-xs text-muted-foreground/60">
             Developed by{" "}

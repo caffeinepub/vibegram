@@ -47,7 +47,7 @@ export function SplashScreen() {
               backgroundClip: "text",
             }}
           >
-            VibeGrom
+            Butki
           </h1>
           <p className="text-sm text-white/50 mt-1.5 font-body">
             Share your vibe with the world

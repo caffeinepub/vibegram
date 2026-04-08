@@ -26,6 +26,7 @@ import {
   ChevronRight,
   CircleDot,
   Clock,
+  Copy,
   EyeOff,
   FileText,
   Heart,
@@ -45,6 +46,7 @@ import {
   UserCheck,
   UserMinus,
   UserPlus,
+  Wallet,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -53,7 +55,11 @@ import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useGetCallerUserProfile, useSearchUsers } from "../hooks/useQueries";
+import {
+  useGetCallerUserProfile,
+  useGetReferralStats,
+  useSearchUsers,
+} from "../hooks/useQueries";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -187,6 +193,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const { identity, clear } = useInternetIdentity();
   const { data: profile } = useGetCallerUserProfile();
+  const { data: referralStats } = useGetReferralStats();
   const { actor } = useActor();
 
   const principalStr = identity?.getPrincipal().toString() ?? "";
@@ -280,6 +287,8 @@ export function SettingsPage() {
         bio: profile.bio || "",
         username: newUsername.trim(),
         displayName: profile.displayName || "",
+        socialLinks: profile.socialLinks || [],
+        pronouns: profile.pronouns,
         ...(profile.profilePhoto ? { profilePhoto: profile.profilePhoto } : {}),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,7 +343,7 @@ export function SettingsPage() {
   // ── Hidden Words Dialog
   const [hiddenWordsOpen, setHiddenWordsOpen] = useState(false);
 
-  // ── Blocked Users Dialog (inline in privacy section)
+  // ── Blocked Users Dialog
   const [blockedOpen, setBlockedOpen] = useState(false);
 
   // ── Close Friends Dialog
@@ -371,6 +380,14 @@ export function SettingsPage() {
     navigate({ to: "/" });
   };
 
+  // ── Copy referral code
+  const handleCopyReferral = () => {
+    if (referralStats?.referralCode) {
+      navigator.clipboard.writeText(referralStats.referralCode);
+      toast.success("Referral code copied!");
+    }
+  };
+
   // ── FAQ Data
   const faqItems = [
     {
@@ -391,7 +408,7 @@ export function SettingsPage() {
     },
     {
       q: "How do I contact support?",
-      a: "Send an email to support@vibegrom.app",
+      a: "Send an email to support@butki.app",
     },
   ];
 
@@ -419,9 +436,9 @@ export function SettingsPage() {
       </header>
 
       <main className="flex-1 py-4 space-y-5">
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 1. ACCOUNT                                                        */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 1. ACCOUNT                                                          */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Account">
           {/* Username display */}
           <SettingsRow
@@ -441,9 +458,7 @@ export function SettingsPage() {
           <SettingsRow
             icon={UserCheck}
             label="Edit Profile"
-            onClick={() => {
-              navigate({ to: "/profile" });
-            }}
+            onClick={() => navigate({ to: "/profile" })}
             data-ocid="settings.edit_profile.button"
           />
           <Separator className="bg-border/60" />
@@ -453,6 +468,23 @@ export function SettingsPage() {
             label="Change Password"
             onClick={() => setPasswordOpen(true)}
             data-ocid="settings.change_password.button"
+          />
+          <Separator className="bg-border/60" />
+          {/* Wallet & Earnings */}
+          <SettingsRow
+            icon={Wallet}
+            label="Wallet & Earnings"
+            onClick={() => navigate({ to: "/wallet" })}
+            data-ocid="settings.wallet.button"
+          />
+          <Separator className="bg-border/60" />
+          {/* My Referral Code */}
+          <SettingsRow
+            icon={Copy}
+            label="My Referral Code"
+            value={referralStats?.referralCode ?? "—"}
+            onClick={handleCopyReferral}
+            data-ocid="settings.referral_code.button"
           />
           <Separator className="bg-border/60" />
           {/* Account Privacy */}
@@ -510,9 +542,9 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 2. NOTIFICATIONS                                                  */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 2. NOTIFICATIONS                                                    */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Notifications" icon={Bell}>
           <ToggleRow
             icon={Smartphone}
@@ -575,9 +607,9 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 3. PROFESSIONAL TOOLS                                             */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 3. PROFESSIONAL TOOLS                                               */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Professional Tools" icon={Briefcase}>
           <SettingsRow
             icon={LayoutDashboard}
@@ -601,9 +633,9 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 4. APPEARANCE                                                     */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 4. APPEARANCE                                                       */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Appearance">
           <ToggleRow
             icon={isDark ? Moon : Sun}
@@ -614,11 +646,10 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 5. PRIVACY                                                        */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 5. PRIVACY                                                          */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Privacy" icon={EyeOff}>
-          {/* Blocked Users */}
           <SettingsRow
             icon={UserMinus}
             label="Blocked Users"
@@ -627,7 +658,6 @@ export function SettingsPage() {
             data-ocid="settings.blocked_users.button"
           />
           <Separator className="bg-border/60" />
-          {/* Hidden Words */}
           <SettingsRow
             icon={MessageSquareOff}
             label="Hidden Words"
@@ -636,7 +666,6 @@ export function SettingsPage() {
             data-ocid="settings.hidden_words.button"
           />
           <Separator className="bg-border/60" />
-          {/* Close Friends */}
           <SettingsRow
             icon={Heart}
             label="Close Friends"
@@ -646,11 +675,10 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 6. SUPPORT                                                        */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 6. SUPPORT                                                          */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Support" icon={HelpCircle}>
-          {/* Help */}
           <SettingsRow
             icon={HelpCircle}
             label="Help"
@@ -658,7 +686,6 @@ export function SettingsPage() {
             data-ocid="settings.help.button"
           />
           <Separator className="bg-border/60" />
-          {/* Privacy Policy */}
           <SettingsRow
             icon={FileText}
             label="Privacy Policy"
@@ -666,7 +693,6 @@ export function SettingsPage() {
             data-ocid="settings.privacy_policy.button"
           />
           <Separator className="bg-border/60" />
-          {/* Terms & Conditions */}
           <SettingsRow
             icon={FileText}
             label="Terms & Conditions"
@@ -674,7 +700,6 @@ export function SettingsPage() {
             data-ocid="settings.terms.button"
           />
           <Separator className="bg-border/60" />
-          {/* Copyright */}
           <SettingsRow
             icon={FileText}
             label="Copyright"
@@ -683,11 +708,10 @@ export function SettingsPage() {
           />
         </SettingsSection>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 7. ACCOUNT CONTROL                                                */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* 7. ACCOUNT CONTROL                                                  */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
         <SettingsSection title="Account Control" icon={Settings2}>
-          {/* Add Account */}
           <SettingsRow
             icon={UserPlus}
             label="Add Account"
@@ -695,7 +719,6 @@ export function SettingsPage() {
             data-ocid="settings.add_account.button"
           />
           <Separator className="bg-border/60" />
-          {/* Log Out */}
           <SettingsRow
             icon={LogOut}
             label="Log Out"
@@ -708,7 +731,7 @@ export function SettingsPage() {
         {/* Footer */}
         <div className="text-center py-6 px-4 space-y-1">
           <p className="text-xs text-muted-foreground font-medium">
-            © 2026 VibeGrom. All Rights Reserved.
+            © 2026 Butki. All Rights Reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Developed by{" "}
@@ -721,7 +744,7 @@ export function SettingsPage() {
       {/* DIALOGS                                                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
 
-      {/* ── Change Username ───────────────────────────────────────────────── */}
+      {/* ── Change Username ────────────────────────────────────────────────── */}
       <Dialog open={usernameOpen} onOpenChange={setUsernameOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -770,7 +793,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Change Password ───────────────────────────────────────────────── */}
+      {/* ── Change Password ────────────────────────────────────────────────── */}
       <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -837,7 +860,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Your Activity ─────────────────────────────────────────────────── */}
+      {/* ── Your Activity ──────────────────────────────────────────────────── */}
       <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -889,7 +912,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Dashboard ─────────────────────────────────────────────────────── */}
+      {/* ── Dashboard ──────────────────────────────────────────────────────── */}
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -946,7 +969,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Insights ──────────────────────────────────────────────────────── */}
+      {/* ── Insights ───────────────────────────────────────────────────────── */}
       <Dialog open={insightsOpen} onOpenChange={setInsightsOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1002,7 +1025,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Blocked Users ─────────────────────────────────────────────────── */}
+      {/* ── Blocked Users ──────────────────────────────────────────────────── */}
       <Dialog open={blockedOpen} onOpenChange={setBlockedOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1060,7 +1083,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Hidden Words ──────────────────────────────────────────────────── */}
+      {/* ── Hidden Words ───────────────────────────────────────────────────── */}
       <Dialog open={hiddenWordsOpen} onOpenChange={setHiddenWordsOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1136,7 +1159,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Close Friends ─────────────────────────────────────────────────── */}
+      {/* ── Close Friends ──────────────────────────────────────────────────── */}
       <Dialog open={cfOpen} onOpenChange={setCfOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1238,7 +1261,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Help / FAQ ────────────────────────────────────────────────────── */}
+      {/* ── Help / FAQ ─────────────────────────────────────────────────────── */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1304,7 +1327,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Add Account ───────────────────────────────────────────────────── */}
+      {/* ── Add Account ────────────────────────────────────────────────────── */}
       <Dialog open={addAccountOpen} onOpenChange={setAddAccountOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1319,7 +1342,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
               To add a new account, you'll need to log out of your current
-              session and sign in with a different Internet Identity.
+              session and sign in with a different identity.
             </p>
             <div className="flex gap-3">
               <Button
@@ -1342,7 +1365,7 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Verification ──────────────────────────────────────────────────── */}
+      {/* ── Verification ───────────────────────────────────────────────────── */}
       <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
         <DialogContent
           className="max-w-sm bg-card border-border rounded-2xl"
@@ -1359,8 +1382,8 @@ export function SettingsPage() {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Tell us why you should be verified. Our team will review your
-              request.
+              Tell us why you should be verified on Butki. Our team will review
+              your request.
             </p>
             <div className="space-y-1.5">
               <Label className="text-sm">Reason for verification</Label>

@@ -117,7 +117,7 @@ export function DiscoverPeoplePage() {
             <Users size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold font-display text-white mb-1.5">
-            Discover People
+            Discover People on Butki
           </h1>
           <p
             className="text-sm leading-relaxed"

@@ -24,6 +24,7 @@ interface VGAccount {
   password: string;
   email?: string;
   phone?: string;
+  referralCode?: string;
 }
 
 type LoginTab = "username" | "email" | "phone";
@@ -125,6 +126,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
   const [signupError, setSignupError] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
 
   // Google OAuth simulation
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -247,11 +249,12 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
         password: newPassword,
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,
+        referralCode: referralCode.trim() || undefined,
       });
       setSession(newUsername);
       // Trigger ICP login for backend compatibility
       login();
-      toast.success(`Account created! Welcome to VibeGrom, @${newUsername} 🎉`);
+      toast.success(`Account created! Welcome to Butki, @${newUsername} 🎉`);
       // Navigate to discover people
       navigate({ to: "/discover" });
     } finally {
@@ -352,7 +355,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
         username: profileUsername,
         displayName: profileDisplayName,
       });
-      toast.success("Welcome to VibeGrom! 🎉");
+      toast.success("Welcome to Butki! 🎉");
     } catch (err: unknown) {
       const error = err as Error;
       toast.error(
@@ -398,7 +401,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
             transition={{ delay: 0.2, duration: 0.4 }}
             className="text-4xl font-bold font-display gradient-text"
           >
-            VibeGrom
+            Butki
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -407,7 +410,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
             className="text-sm mt-1.5"
             style={{ color: "oklch(0.6 0.04 265)" }}
           >
-            Share your world, one vibe at a time
+            Share your vibe, earn rewards
           </motion.p>
         </div>
 
@@ -783,7 +786,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 className="text-center text-xs mt-5 px-4"
                 style={{ color: "oklch(0.45 0.03 265)" }}
               >
-                By continuing, you agree to VibeGrom's{" "}
+                By continuing, you agree to Butki's{" "}
                 <span
                   className="underline cursor-pointer"
                   style={{ color: "oklch(0.6 0.04 265)" }}
@@ -1229,6 +1232,28 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                     />
                   </div>
 
+                  {/* Referral code (optional) */}
+                  <div
+                    className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
+                    style={{
+                      background: "oklch(0.18 0.015 265)",
+                      borderColor: "oklch(0.25 0.02 280)",
+                    }}
+                  >
+                    <Input
+                      data-ocid="auth.referral_code.input"
+                      value={referralCode}
+                      onChange={(e) => {
+                        setReferralCode(e.target.value.toUpperCase());
+                        setSignupError("");
+                      }}
+                      placeholder="Have a referral code? Enter it (optional)"
+                      className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-white placeholder:text-white/30 text-sm"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                    />
+                  </div>
+
                   {/* Password */}
                   <div
                     className="flex items-center rounded-xl border px-3 h-12 transition-all focus-within:ring-1"
@@ -1433,7 +1458,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 className="text-center text-xs mt-4 px-4"
                 style={{ color: "oklch(0.45 0.03 265)" }}
               >
-                By signing up, you agree to VibeGrom's{" "}
+                By signing up, you agree to Butki's{" "}
                 <span
                   className="underline cursor-pointer"
                   style={{ color: "oklch(0.6 0.04 265)" }}
@@ -1516,7 +1541,7 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 className="text-xs mt-0.5"
                 style={{ color: "oklch(0.5 0.03 265)" }}
               >
-                to continue to VibeGrom
+                to continue to Butki
               </p>
             </DialogHeader>
           </div>
@@ -1537,9 +1562,9 @@ export function AuthPage({ needsProfile }: AuthPageProps) {
                 color: "oklch(0.55 0.2 250)",
               },
               {
-                name: "VibeGrom User",
-                email: "vibegrom.user@gmail.com",
-                initials: "V",
+                name: "Butki User",
+                email: "butki.user@gmail.com",
+                initials: "B",
                 color: "oklch(0.5 0.22 295)",
               },
             ].map((acc) => (

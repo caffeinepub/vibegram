@@ -74,7 +74,7 @@ export function ShareProfileSheet({
   username: string;
   displayName: string;
 }) {
-  const profileUrl = `https://vibegrom.app/@${username}`;
+  const profileUrl = `https://butki.app/@${username}`;
 
   const handleCopyLink = async () => {
     try {
@@ -92,8 +92,8 @@ export function ShareProfileSheet({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${displayName} on VibeGrom`,
-          text: `Check out @${username} on VibeGrom!`,
+          title: `${displayName} on Butki`,
+          text: `Check out @${username} on Butki!`,
           url: profileUrl,
         });
       } catch {
@@ -141,7 +141,7 @@ export function ShareProfileSheet({
             />
 
             <div className="relative p-6 flex flex-col items-center gap-4">
-              {/* VibeGrom logo */}
+              {/* Butki logo */}
               <div className="text-center">
                 <span
                   className="text-lg font-black tracking-tight font-display"
@@ -153,7 +153,7 @@ export function ShareProfileSheet({
                     backgroundClip: "text",
                   }}
                 >
-                  VibeGrom
+                  Butki
                 </span>
               </div>
 
@@ -180,7 +180,7 @@ export function ShareProfileSheet({
                   color: "oklch(0.65 0.18 295)",
                 }}
               >
-                vibegrom.app/@{username}
+                butki.app/@{username}
               </p>
             </div>
           </div>

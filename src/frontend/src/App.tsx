@@ -12,6 +12,7 @@ import { MediaCreationHub } from "./components/MediaCreationHub";
 import { SplashScreen } from "./components/SplashScreen";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
+import { AdminPage } from "./pages/AdminPage";
 import { AuthPage } from "./pages/AuthPage";
 import { CopyrightPage } from "./pages/CopyrightPage";
 import { DiscoverPeoplePage } from "./pages/DiscoverPeoplePage";
@@ -27,6 +28,7 @@ import { SavedPage } from "./pages/SavedPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TermsPage } from "./pages/TermsPage";
 import { UserProfilePage } from "./pages/UserProfilePage";
+import { WalletPage } from "./pages/WalletPage";
 
 // ─── Layout with BottomNav ────────────────────────────────────────────────────
 
@@ -138,6 +140,18 @@ const discoverRoute = createRoute({
   component: DiscoverPeoplePage,
 });
 
+const walletRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/wallet",
+  component: WalletPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   exploreRoute,
@@ -153,6 +167,8 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   copyrightRoute,
   discoverRoute,
+  walletRoute,
+  adminRoute,
 ]);
 
 const router = createRouter({ routeTree });

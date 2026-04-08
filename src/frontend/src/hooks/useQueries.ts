@@ -1,15 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ExternalBlob } from "../backend";
 import type {
+  AdminAnalytics,
+  AdminPostInfo,
+  AdminUserInfo,
   Comment,
   MediaType,
   Message,
   Notification,
   NotificationId,
   Post,
+  PostId,
+  ReferralStats,
+  TxId,
+  UserId,
   UserProfile,
+  WalletInfo,
+  WalletTransaction,
+  WithdrawalMethod,
+  WithdrawalRequest,
 } from "../backend.d";
-import type { PostId, UserId } from "../backend.d";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
 
@@ -67,12 +76,14 @@ export function useRegisterUser() {
     mutationFn: async ({
       username,
       displayName,
+      referralCode,
     }: {
       username: string;
       displayName: string;
+      referralCode?: string;
     }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.registerUser(username, displayName);
+      return actor.registerUser(username, displayName, referralCode ?? null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
@@ -88,13 +99,23 @@ export function useUpdateProfile() {
       displayName,
       bio,
       profilePhoto,
+      pronouns,
+      socialLinks,
     }: {
       displayName: string;
       bio: string;
-      profilePhoto: ExternalBlob | null;
+      profilePhoto: string | null;
+      pronouns?: string;
+      socialLinks?: string[];
     }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.updateProfile(displayName, bio, profilePhoto);
+      return actor.updateProfile(
+        displayName,
+        bio,
+        profilePhoto,
+        pronouns ?? null,
+        socialLinks ?? [],
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
@@ -157,21 +178,46 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      media,
+      mediaUrl,
       mediaType,
       caption,
+      location,
+      tags,
     }: {
-      media: ExternalBlob;
+      mediaUrl: string;
       mediaType: MediaType;
       caption: string;
+      location?: string;
+      tags?: string[];
     }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.createPost(media, mediaType, caption);
+      return actor.createPost(
+        mediaUrl,
+        mediaType,
+        caption,
+        location ?? null,
+        tags ?? [],
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
       queryClient.invalidateQueries({ queryKey: ["exploreFeed"] });
       queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+    },
+  });
+}
+
+export function useFlagPost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (postId: PostId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.flagPost(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
+      queryClient.invalidateQueries({ queryKey: ["exploreFeed"] });
     },
   });
 }
@@ -376,6 +422,204 @@ export function useSendMessage() {
         queryKey: ["conversation", receiverId.toString()],
       });
       queryClient.invalidateQueries({ queryKey: ["recentConversations"] });
+    },
+  });
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export function useGetMyWallet() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  return useQuery<WalletInfo>({
+    queryKey: ["myWallet", identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.getMyWallet();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+  });
+}
+
+export function useGetReferralStats() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  return useQuery<ReferralStats>({
+    queryKey: ["referralStats", identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.getReferralStats();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+  });
+}
+
+export function useGetWithdrawalHistory() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  return useQuery<WalletTransaction[]>({
+    queryKey: ["withdrawalHistory", identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getWithdrawalRequests();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+  });
+}
+
+export function useRequestWithdrawal() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      amount,
+      method,
+    }: {
+      amount: number;
+      method: WithdrawalMethod;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.requestWithdrawal(amount, method);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myWallet"] });
+      queryClient.invalidateQueries({ queryKey: ["withdrawalHistory"] });
+    },
+  });
+}
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+export function useIsAdmin() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  return useQuery<boolean>({
+    queryKey: ["isAdmin", identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor || !identity) return false;
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+  });
+}
+
+export function useAdminGetUsers(page: number, pageSize: number) {
+  const { actor, isFetching } = useActor();
+  return useQuery<AdminUserInfo[]>({
+    queryKey: ["adminUsers", page, pageSize],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.adminGetUsers(BigInt(page), BigInt(pageSize));
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAdminGetPosts(page: number, pageSize: number) {
+  const { actor, isFetching } = useActor();
+  return useQuery<AdminPostInfo[]>({
+    queryKey: ["adminPosts", page, pageSize],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.adminGetPosts(BigInt(page), BigInt(pageSize));
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAdminGetAnalytics() {
+  const { actor, isFetching } = useActor();
+  return useQuery<AdminAnalytics>({
+    queryKey: ["adminAnalytics"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminGetAnalytics();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAdminGetWithdrawalRequests() {
+  const { actor, isFetching } = useActor();
+  return useQuery<WithdrawalRequest[]>({
+    queryKey: ["adminWithdrawals"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.adminGetWithdrawalRequests();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 30000,
+  });
+}
+
+export function useAdminApproveWithdrawal() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (txId: TxId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminApproveWithdrawal(txId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminWithdrawals"] });
+    },
+  });
+}
+
+export function useAdminRejectWithdrawal() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ txId, reason }: { txId: TxId; reason: string }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminRejectWithdrawal(txId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminWithdrawals"] });
+    },
+  });
+}
+
+export function useAdminSuspendUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: UserId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminSuspendUser(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    },
+  });
+}
+
+export function useAdminUnsuspendUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: UserId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminUnsuspendUser(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    },
+  });
+}
+
+export function useAdminRemovePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (postId: PostId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminRemovePost(postId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
+      queryClient.invalidateQueries({ queryKey: ["exploreFeed"] });
     },
   });
 }

@@ -155,7 +155,7 @@ export function StoryViewer({
 
   if (!open) return null;
 
-  const mediaUrl = currentStory?.media?.getDirectURL();
+  const mediaUrl = currentStory?.mediaUrl || null;
   const isVideo = currentStory?.mediaType === "video";
 
   // Mock view count (deterministic based on story index)

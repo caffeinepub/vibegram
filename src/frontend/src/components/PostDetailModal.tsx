@@ -65,7 +65,7 @@ export function PostDetailModal({
     setCommentText("");
   };
 
-  const mediaUrl = post?.media?.getDirectURL();
+  const mediaUrl = post?.mediaUrl || null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

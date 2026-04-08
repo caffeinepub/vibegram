@@ -18,7 +18,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ExternalBlob, MediaType } from "../backend";
+import { MediaType } from "../backend";
 import { CreativeToolbar } from "../components/CreativeToolbar";
 import {
   MediaOverlayCanvas,
@@ -104,16 +104,21 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
     if (!selectedFile) return;
 
     try {
-      const arrayBuffer = await selectedFile.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-
-      const blob = ExternalBlob.fromBytes(bytes).withUploadProgress(
-        (percentage) => setUploadProgress(percentage),
-      );
-
       const mediaType = selectedFile.type.startsWith("video/")
         ? MediaType.video
         : MediaType.photo;
+
+      // Convert file to data URL for storage
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.onprogress = (e) => {
+          if (e.lengthComputable)
+            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        reader.readAsDataURL(selectedFile);
+      });
 
       let finalCaption = caption.trim();
       if (collabUser.trim()) {
@@ -122,25 +127,18 @@ export function UploadPage({ onSuccess }: UploadPageProps) {
           : `@${collabUser.trim()}`;
         finalCaption = `__collab__${cu}__${finalCaption}`;
       }
-      if (locationTag.trim()) {
-        finalCaption += `__loc__${locationTag.trim()}__`;
-      }
-      if (tagPeople.trim()) {
-        const tags = tagPeople
-          .split(",")
-          .map((t) => {
-            const trimmed = t.trim();
-            return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
-          })
-          .filter(Boolean)
-          .join(",");
-        if (tags) finalCaption += `__tags__${tags}__`;
-      }
 
       await createPost.mutateAsync({
-        media: blob,
+        mediaUrl: dataUrl,
         mediaType,
         caption: finalCaption,
+        location: locationTag.trim() || undefined,
+        tags: tagPeople.trim()
+          ? tagPeople
+              .split(",")
+              .map((t) => t.trim().replace(/^@/, ""))
+              .filter(Boolean)
+          : undefined,
       });
 
       setUploadDone(true);
