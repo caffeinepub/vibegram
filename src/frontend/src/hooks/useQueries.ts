@@ -488,7 +488,7 @@ export function useRequestWithdrawal() {
   });
 }
 
-// ─── Admin ────────────────────────────────────────────────────────────────────
+// ─── Admin Core ───────────────────────────────────────────────────────────────
 
 export function useIsAdmin() {
   const { actor, isFetching } = useActor();
@@ -503,6 +503,19 @@ export function useIsAdmin() {
   });
 }
 
+export function useAdminGetAnalytics() {
+  const { actor, isFetching } = useActor();
+  return useQuery<AdminAnalytics>({
+    queryKey: ["adminAnalytics"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminGetAnalytics();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
+  });
+}
+
 export function useAdminGetUsers(page: number, pageSize: number) {
   const { actor, isFetching } = useActor();
   return useQuery<AdminUserInfo[]>({
@@ -512,6 +525,21 @@ export function useAdminGetUsers(page: number, pageSize: number) {
       return actor.adminGetUsers(BigInt(page), BigInt(pageSize));
     },
     enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
+  });
+}
+
+export function useAdminSearchUsers(search: string) {
+  const { actor, isFetching } = useActor();
+  return useQuery<AdminUserInfo[]>({
+    queryKey: ["adminUsers", search],
+    queryFn: async () => {
+      if (!actor) return [];
+      if (search.trim()) return actor.adminSearchUsers(search.trim());
+      return actor.adminGetUsers(BigInt(0), BigInt(100));
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
   });
 }
 
@@ -524,18 +552,20 @@ export function useAdminGetPosts(page: number, pageSize: number) {
       return actor.adminGetPosts(BigInt(page), BigInt(pageSize));
     },
     enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
   });
 }
 
-export function useAdminGetAnalytics() {
+export function useAdminGetFlaggedPosts() {
   const { actor, isFetching } = useActor();
-  return useQuery<AdminAnalytics>({
-    queryKey: ["adminAnalytics"],
+  return useQuery<AdminPostInfo[]>({
+    queryKey: ["adminFlaggedPosts"],
     queryFn: async () => {
-      if (!actor) throw new Error("Actor not available");
-      return actor.adminGetAnalytics();
+      if (!actor) return [];
+      return actor.adminGetFlaggedPosts();
     },
     enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
   });
 }
 
@@ -548,7 +578,20 @@ export function useAdminGetWithdrawalRequests() {
       return actor.adminGetWithdrawalRequests();
     },
     enabled: !!actor && !isFetching,
-    refetchInterval: 30000,
+    refetchInterval: 5000,
+  });
+}
+
+export function useAdminGetReferralStats() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["adminReferralStats"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminGetReferralStats();
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 5000,
   });
 }
 
@@ -562,6 +605,8 @@ export function useAdminApproveWithdrawal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminWithdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["adminAnalytics"] });
+      queryClient.invalidateQueries({ queryKey: ["myWallet"] });
     },
   });
 }
@@ -576,6 +621,7 @@ export function useAdminRejectWithdrawal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminWithdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["myWallet"] });
     },
   });
 }
@@ -590,6 +636,7 @@ export function useAdminSuspendUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminFraudScores"] });
     },
   });
 }
@@ -604,6 +651,7 @@ export function useAdminUnsuspendUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminFraudScores"] });
     },
   });
 }
@@ -618,8 +666,161 @@ export function useAdminRemovePost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["adminFlaggedPosts"] });
       queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
       queryClient.invalidateQueries({ queryKey: ["exploreFeed"] });
     },
+  });
+}
+
+export function useAdminSetAdmin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: UserId) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.adminSetAdmin(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    },
+  });
+}
+
+// ─── Admin Fraud Scores (derived from users — no dedicated backend method) ────
+
+export interface FraudScore {
+  userId: string;
+  username: string;
+  riskScore: number;
+  flags: string[];
+}
+
+export function useAdminFraudScores(users: AdminUserInfo[]) {
+  return useQuery<FraudScore[]>({
+    queryKey: [
+      "adminFraudScores",
+      users.map((u) => u.userId.toString()).join(","),
+    ],
+    queryFn: async () => {
+      return users.map((u) => {
+        const flags: string[] = [];
+        let score = 0;
+        if (Number(u.postCount) === 0) {
+          flags.push("Zero posts");
+          score += 25;
+        }
+        if (Number(u.followerCount) === 0) {
+          flags.push("No followers");
+          score += 15;
+        }
+        if (u.isSuspended) {
+          flags.push("Previously suspended");
+          score += 30;
+        }
+        const ageMs = Date.now() - Number(u.joinedAt) / 1_000_000;
+        const ageDays = ageMs / 86400000;
+        if (ageDays < 1 && Number(u.postCount) === 0) {
+          flags.push("New account, no activity");
+          score += 20;
+        }
+        if (ageDays > 30 && Number(u.postCount) === 0) {
+          flags.push("Inactive 30+ days");
+          score += 15;
+        }
+        return {
+          userId: u.userId.toString(),
+          username: u.username,
+          riskScore: Math.min(score, 100),
+          flags,
+        };
+      });
+    },
+    enabled: users.length > 0,
+    refetchInterval: 5000,
+  });
+}
+
+// ─── Admin Rewards (local config — stored in query cache) ────────────────────
+
+export interface RewardConfig {
+  signupBonus: number;
+  reelBonus: number;
+  followerBonus: number;
+}
+
+const DEFAULT_REWARDS: RewardConfig = {
+  signupBonus: 10,
+  reelBonus: 20,
+  followerBonus: 50,
+};
+
+export function useAdminRewards() {
+  return useQuery<RewardConfig>({
+    queryKey: ["adminRewards"],
+    queryFn: async () => {
+      const stored = localStorage.getItem("butki_admin_rewards");
+      if (stored) return JSON.parse(stored) as RewardConfig;
+      return DEFAULT_REWARDS;
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+}
+
+export function useAdminSetRewards() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (config: RewardConfig) => {
+      localStorage.setItem("butki_admin_rewards", JSON.stringify(config));
+      return config;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminRewards"] });
+    },
+  });
+}
+
+// ─── Admin Audit Log (local — appended on each admin action) ─────────────────
+
+export interface AuditEntry {
+  id: string;
+  timestamp: number;
+  adminId: string;
+  action: string;
+  target: string;
+  details: string;
+}
+
+export function getAuditLog(): AuditEntry[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem("butki_audit_log") ?? "[]",
+    ) as AuditEntry[];
+  } catch {
+    return [];
+  }
+}
+
+export function appendAuditLog(entry: Omit<AuditEntry, "id" | "timestamp">) {
+  const log = getAuditLog();
+  log.unshift({
+    ...entry,
+    id: Math.random().toString(36).slice(2),
+    timestamp: Date.now(),
+  });
+  localStorage.setItem("butki_audit_log", JSON.stringify(log.slice(0, 200)));
+}
+
+export function useAdminAuditLog(page: number, pageSize: number) {
+  return useQuery<{ entries: AuditEntry[]; total: number }>({
+    queryKey: ["adminAuditLog", page, pageSize],
+    queryFn: async () => {
+      const log = getAuditLog();
+      return {
+        entries: log.slice(page * pageSize, (page + 1) * pageSize),
+        total: log.length,
+      };
+    },
+    refetchInterval: 5000,
   });
 }

@@ -123,6 +123,13 @@ type MediaType =
    photo;
    video;
  };
+type FraudScoreInfo = 
+ record {
+   flags: vec text;
+   riskScore: nat;
+   userId: UserId;
+   username: text;
+ };
 type Comment = 
  record {
    authorId: UserId;
@@ -163,6 +170,16 @@ type AdminPostInfo =
    likeCount: nat;
    mediaType: MediaType;
  };
+type AdminAuditEntry = 
+ record {
+   action: text;
+   adminId: UserId;
+   details: text;
+   id: nat;
+   targetId: opt UserId;
+   targetPostId: opt PostId;
+   timestamp: int;
+ };
 type AdminAnalytics = 
  record {
    newUsersThisWeek: nat;
@@ -175,16 +192,27 @@ type AdminAnalytics =
 service : {
   _initializeAccessControl: () -> ();
   adminApproveWithdrawal: (txId: TxId) -> ();
+  adminGetAllUsers: () -> (vec AdminUserInfo) query;
   adminGetAnalytics: () -> (AdminAnalytics) query;
+  adminGetAuditLog: (page: nat, pageSize: nat) -> (vec AdminAuditEntry) query;
   adminGetFlaggedPosts: () -> (vec AdminPostInfo) query;
+  adminGetFraudScores: () -> (vec FraudScoreInfo) query;
   adminGetPosts: (page: nat, pageSize: nat) -> (vec AdminPostInfo) query;
   adminGetReferralStats: () -> (AdminReferralStats) query;
+  adminGetRewards: () ->
+   (record {
+      followerBonus: float64;
+      reelBonus: float64;
+      signupBonus: float64;
+    }) query;
   adminGetUsers: (page: nat, pageSize: nat) -> (vec AdminUserInfo) query;
   adminGetWithdrawalRequests: () -> (vec WithdrawalRequest) query;
   adminRejectWithdrawal: (txId: TxId, reason: text) -> ();
   adminRemovePost: (postId: PostId) -> ();
   adminSearchUsers: (searchQuery: text) -> (vec AdminUserInfo) query;
   adminSetAdmin: (userId: principal) -> ();
+  adminSetRewards: (signupBonus: float64, reelBonus: float64, followerBonus:
+   float64) -> (bool);
   adminSuspendUser: (userId: principal) -> ();
   adminUnsuspendUser: (userId: principal) -> ();
   approveWithdrawal: (txId: TxId) -> ();

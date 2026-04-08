@@ -18,6 +18,15 @@ export interface AdminAnalytics {
   'newUsersThisWeek' : bigint,
   'totalReels' : bigint,
 }
+export interface AdminAuditEntry {
+  'id' : bigint,
+  'action' : string,
+  'timestamp' : bigint,
+  'details' : string,
+  'targetPostId' : [] | [PostId],
+  'adminId' : UserId,
+  'targetId' : [] | [UserId],
+}
 export interface AdminPostInfo {
   'id' : PostId,
   'likeCount' : bigint,
@@ -50,6 +59,12 @@ export interface Comment {
   'createdAt' : bigint,
   'text' : string,
   'postId' : PostId,
+}
+export interface FraudScoreInfo {
+  'flags' : Array<string>,
+  'username' : string,
+  'userId' : UserId,
+  'riskScore' : bigint,
 }
 export type MediaType = { 'video' : null } |
   { 'photo' : null };
@@ -147,16 +162,24 @@ export type WithdrawalStatus = { 'pending' : null } |
 export interface _SERVICE {
   '_initializeAccessControl' : ActorMethod<[], undefined>,
   'adminApproveWithdrawal' : ActorMethod<[TxId], undefined>,
+  'adminGetAllUsers' : ActorMethod<[], Array<AdminUserInfo>>,
   'adminGetAnalytics' : ActorMethod<[], AdminAnalytics>,
+  'adminGetAuditLog' : ActorMethod<[bigint, bigint], Array<AdminAuditEntry>>,
   'adminGetFlaggedPosts' : ActorMethod<[], Array<AdminPostInfo>>,
+  'adminGetFraudScores' : ActorMethod<[], Array<FraudScoreInfo>>,
   'adminGetPosts' : ActorMethod<[bigint, bigint], Array<AdminPostInfo>>,
   'adminGetReferralStats' : ActorMethod<[], AdminReferralStats>,
+  'adminGetRewards' : ActorMethod<
+    [],
+    { 'followerBonus' : number, 'signupBonus' : number, 'reelBonus' : number }
+  >,
   'adminGetUsers' : ActorMethod<[bigint, bigint], Array<AdminUserInfo>>,
   'adminGetWithdrawalRequests' : ActorMethod<[], Array<WithdrawalRequest>>,
   'adminRejectWithdrawal' : ActorMethod<[TxId, string], undefined>,
   'adminRemovePost' : ActorMethod<[PostId], undefined>,
   'adminSearchUsers' : ActorMethod<[string], Array<AdminUserInfo>>,
   'adminSetAdmin' : ActorMethod<[Principal], undefined>,
+  'adminSetRewards' : ActorMethod<[number, number, number], boolean>,
   'adminSuspendUser' : ActorMethod<[Principal], undefined>,
   'adminUnsuspendUser' : ActorMethod<[Principal], undefined>,
   'approveWithdrawal' : ActorMethod<[TxId], undefined>,

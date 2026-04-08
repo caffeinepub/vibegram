@@ -228,6 +228,27 @@ actor {
     pendingWithdrawals : Nat;
   };
 
+  // ── Admin audit log types ─────────────────────────────────────────────────────
+
+  public type AdminAuditEntry = {
+    id : Nat;
+    adminId : UserId;
+    action : Text;
+    targetId : ?UserId;
+    targetPostId : ?PostId;
+    details : Text;
+    timestamp : Int;
+  };
+
+  // ── Fraud score types ─────────────────────────────────────────────────────────
+
+  public type FraudScoreInfo = {
+    userId : UserId;
+    username : Text;
+    riskScore : Nat;
+    flags : [Text];
+  };
+
   // ── State ─────────────────────────────────────────────────────────────────────
 
   let users = Map.empty<UserId, UserProfile>();
@@ -247,6 +268,7 @@ actor {
   let admins = Set.empty<UserId>();
   let suspendedUsers = Set.empty<UserId>();
   let flaggedPosts = Set.empty<PostId>();
+  let deletedPosts = Set.empty<PostId>();
   let flagCounts = Map.empty<PostId, Nat>();
   var nextTxId = 0;
   let withdrawalRequests = Map.empty<TxId, WithdrawalRequest>();
@@ -256,6 +278,21 @@ actor {
   let walletTransactions = Map.empty<TxId, WalletTransaction>();
   // referrals: referredId -> ReferralRecord
   let referrals = Map.empty<UserId, ReferralRecord>();
+
+  // ── Referral reward config (configurable by admin) ────────────────────────────
+  var referralSignupBonus : Float = 10.0;
+  var referralReelBonus : Float = 20.0;
+  var referralFollowerBonus : Float = 50.0;
+
+  // ── Admin audit log ───────────────────────────────────────────────────────────
+  let auditLog = List.empty<AdminAuditEntry>();
+  var nextAuditId : Nat = 0;
+
+  // ── Fraud scores cache ────────────────────────────────────────────────────────
+  let _fraudScores = Map.empty<UserId, Nat>();
+
+  // ── Referral velocity tracking (userId -> [timestamp]) ───────────────────────
+  let referralTimestamps = Map.empty<UserId, List.List<Int>>();
 
   // ── Referral code helpers ─────────────────────────────────────────────────────
 
@@ -280,7 +317,7 @@ actor {
     let pad = if (s.size() < 4) {
       var p = "";
       var j = 0;
-      while (j < (4 - s.size())) { p := p # "0"; j += 1 };
+      while (j + s.size() < 4) { p := p # "0"; j += 1 };
       p # s;
     } else { s };
     prefix # pad;
@@ -361,8 +398,8 @@ actor {
         case (null) {};
         case (?ref) {
           if (not ref.followerBonusPaid) {
-            creditWallet(ref.referrerId, 50.0, #referralFollowers, "Referral reached 100 followers");
-            addNotification(ref.referrerId, #referralFollowers, userId, null, ?"Your referral hit 100 followers! You earned ₹50!");
+            creditWallet(ref.referrerId, referralFollowerBonus, #referralFollowers, "Referral reached 100 followers");
+              addNotification(ref.referrerId, #referralFollowers, userId, null, ?("Your referral hit 100 followers! You earned \u{20B9}" # referralFollowerBonus.toText() # "!"));
             referrals.add(userId, { ref with followerBonusPaid = true });
           };
         };
@@ -426,8 +463,21 @@ actor {
     };
   };
 
+  func logAudit(adminId : UserId, action : Text, targetId : ?UserId, targetPostId : ?PostId, details : Text) {
+    auditLog.add({
+      id = nextAuditId;
+      adminId;
+      action;
+      targetId;
+      targetPostId;
+      details;
+      timestamp = Time.now();
+    });
+    nextAuditId += 1;
+  };
+
   func getPostCount(userId : UserId) : Nat {
-    posts.values().toArray().filter(func(p) { Principal.equal(p.authorId, userId) }).size();
+    posts.values().toArray().filter(func(p) { Principal.equal(p.authorId, userId) and not deletedPosts.contains(p.id) }).size();
   };
 
   func buildAdminUserInfo(userId : UserId, profile : UserProfile) : AdminUserInfo {
@@ -469,6 +519,69 @@ actor {
     };
   };
 
+  // ── Suspension check helper ───────────────────────────────────────────────────
+
+  func requireNotSuspended(caller : UserId) {
+    if (suspendedUsers.contains(caller)) {
+      Runtime.trap("Account suspended");
+    };
+  };
+
+  // ── Fraud score computation ───────────────────────────────────────────────────
+
+  func computeFraudScore(userId : UserId) : (Nat, [Text]) {
+    var score : Nat = 0;
+    let flags = List.empty<Text>();
+    let now = Time.now();
+    let oneDayNs : Int = 24 * 60 * 60 * 1_000_000_000;
+    let sevenDaysNs : Int = 7 * oneDayNs;
+
+    let joinTime : Int = switch (userJoinTimes.get(userId)) {
+      case (?t) t;
+      case null now;
+    };
+
+    // Check: withdrawal requested within 24h of signup
+    let earlyWithdrawal = withdrawalRequests.values().toArray().any(func(req) {
+      Principal.equal(req.userId, userId) and (req.createdAt - joinTime) < oneDayNs
+    });
+    if (earlyWithdrawal) {
+      score += 40;
+      flags.add("Requested withdrawal within 24h of signup");
+    };
+
+    // Check: zero activity after 7 days (account is old enough)
+    let accountAge : Int = now - joinTime;
+    if (accountAge > sevenDaysNs) {
+      let postCount = posts.values().toArray().filter(func(p) {
+        Principal.equal(p.authorId, userId) and not deletedPosts.contains(p.id)
+      }).size();
+      let followerCount = getFollowerCount(userId);
+      let followingCount = switch (follows.get(userId)) {
+        case (null) 0;
+        case (?f) f.size();
+      };
+      if (postCount == 0 and followerCount == 0 and followingCount == 0) {
+        score += 30;
+        flags.add("Zero activity after 7+ days");
+      };
+    };
+
+    // Check: high referral velocity — more than 20 referrals in 24h
+    let myReferrals = referrals.values().toArray().filter(func(ref) {
+      Principal.equal(ref.referrerId, userId)
+    });
+    let recentReferrals = myReferrals.filter(func(ref) {
+      (now - ref.createdAt) < oneDayNs
+    });
+    if (recentReferrals.size() > 20) {
+      score += 30;
+      flags.add("High referral velocity: " # recentReferrals.size().toText() # " referrals in 24h");
+    };
+
+    (score, flags.toArray());
+  };
+
   // ══════════════════════════════════════════════════════════════════════════════
   // Public API
   // ══════════════════════════════════════════════════════════════════════════════
@@ -493,7 +606,7 @@ actor {
     users.get(userId);
   };
 
-  // Register user — optional referral code triggers ₹10 bonus to referrer
+  // Register user — optional referral code triggers signup bonus to referrer
   public shared ({ caller }) func registerUser(
     username : Text,
     displayName : Text,
@@ -539,8 +652,16 @@ actor {
                   createdAt = Time.now();
                 },
               );
-              creditWallet(referrerId, 10.0, #referralSignup, "Referral signup bonus");
-              addNotification(referrerId, #referralSignup, caller, null, ?"Your referral signed up! You earned \u{20B9}10!");
+              creditWallet(referrerId, referralSignupBonus, #referralSignup, "Referral signup bonus");
+              addNotification(referrerId, #referralSignup, caller, null, ?("Your referral signed up! You earned \u{20B9}" # referralSignupBonus.toText() # "!"));
+
+              // Track referral timestamp for velocity detection
+              let timestamps = switch (referralTimestamps.get(referrerId)) {
+                case (null) List.empty<Int>();
+                case (?ts) ts;
+              };
+              timestamps.add(Time.now());
+              referralTimestamps.add(referrerId, timestamps);
             };
           };
         };
@@ -579,7 +700,7 @@ actor {
 
   // ── Posts ─────────────────────────────────────────────────────────────────────
 
-  // Create post — triggers ₹20 reel bonus to referrer on first video
+  // Create post — triggers reel bonus to referrer on first video
   public shared ({ caller }) func createPost(
     mediaUrl : Text,
     mediaType : MediaType,
@@ -593,6 +714,7 @@ actor {
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
     };
+    requireNotSuspended(caller);
     let post : Post = {
       id = nextPostId;
       authorId = caller;
@@ -614,11 +736,11 @@ actor {
           case (?ref) {
             if (not ref.reelBonusPaid) {
               let userVideos = posts.values().toArray().filter(func(p) {
-                Principal.equal(p.authorId, caller) and p.mediaType == #video
+                Principal.equal(p.authorId, caller) and p.mediaType == #video and not deletedPosts.contains(p.id)
               });
               if (userVideos.size() == 1) {
-                creditWallet(ref.referrerId, 20.0, #referralReel, "Referral first reel bonus");
-                addNotification(ref.referrerId, #referralReel, caller, null, ?"Your referral posted their first reel! You earned \u{20B9}20!");
+                creditWallet(ref.referrerId, referralReelBonus, #referralReel, "Referral first reel bonus");
+                addNotification(ref.referrerId, #referralReel, caller, null, ?("Your referral posted their first reel! You earned \u{20B9}" # referralReelBonus.toText() # "!"));
                 referrals.add(caller, { ref with reelBonusPaid = true });
               };
             };
@@ -632,7 +754,10 @@ actor {
   };
 
   public query func getPost(postId : PostId) : async ?Post {
-    posts.get(postId);
+    switch (posts.get(postId)) {
+      case (?p) if (deletedPosts.contains(p.id)) null else ?p;
+      case null null;
+    };
   };
 
   public query ({ caller }) func getHomeFeed(page : Nat, pageSize : Nat) : async [Post] {
@@ -644,7 +769,7 @@ actor {
       case (?f) f;
     };
     let feedPosts = posts.values().toArray().filter(func(post) {
-      followedUsers.any(func(uid) { Principal.equal(uid, post.authorId) });
+      not deletedPosts.contains(post.id) and followedUsers.any(func(uid) { Principal.equal(uid, post.authorId) });
     });
     let sorted = feedPosts.sort(Post.compareNewest);
     let start = page * pageSize;
@@ -654,7 +779,7 @@ actor {
   };
 
   public query func getExploreFeed(page : Nat, pageSize : Nat) : async [Post] {
-    let sorted = posts.values().toArray().sort(Post.compareNewest);
+    let sorted = posts.values().toArray().filter(func(p) { not deletedPosts.contains(p.id) }).sort(Post.compareNewest);
     let start = page * pageSize;
     if (start >= sorted.size()) { [] } else {
       sorted.sliceToArray(start, Nat.min(start + pageSize, sorted.size()));
@@ -662,7 +787,7 @@ actor {
   };
 
   public query func getUserPosts(userId : UserId) : async [Post] {
-    posts.values().toArray().filter(func(p) { Principal.equal(p.authorId, userId) }).sort(Post.compareNewest);
+    posts.values().toArray().filter(func(p) { Principal.equal(p.authorId, userId) and not deletedPosts.contains(p.id) }).sort(Post.compareNewest);
   };
 
   // ── Likes ─────────────────────────────────────────────────────────────────────
@@ -674,9 +799,11 @@ actor {
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
     };
+    requireNotSuspended(caller);
     switch (posts.get(postId)) {
       case (null) { Runtime.trap("Post does not exist") };
       case (?post) {
+        if (deletedPosts.contains(postId)) { Runtime.trap("Post does not exist") };
         let current = switch (likes.get(postId)) {
           case (null) List.empty<UserId>();
           case (?l) l;
@@ -711,9 +838,11 @@ actor {
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
     };
+    requireNotSuspended(caller);
     switch (posts.get(postId)) {
       case (null) { Runtime.trap("Post does not exist") };
       case (?post) {
+        if (deletedPosts.contains(postId)) { Runtime.trap("Post does not exist") };
         let comment : Comment = {
           postId;
           authorId = caller;
@@ -743,7 +872,7 @@ actor {
 
   // ── Follow system ─────────────────────────────────────────────────────────────
 
-  // Follow user — triggers ₹50 milestone bonus when followee hits 100 followers
+  // Follow user — triggers milestone bonus when followee hits 100 followers
   public shared ({ caller }) func followUser(followeeId : UserId) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can follow others");
@@ -751,6 +880,7 @@ actor {
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
     };
+    requireNotSuspended(caller);
     if (not users.containsKey(followeeId)) {
       Runtime.trap("User does not exist");
     };
@@ -825,6 +955,7 @@ actor {
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
     };
+    requireNotSuspended(caller);
     if (not users.containsKey(receiverId)) {
       Runtime.trap("User does not exist");
     };
@@ -1025,9 +1156,9 @@ actor {
         });
         var totalEarned = 0.0;
         myReferrals.forEach(func(ref) {
-          if (ref.signupBonusPaid) { totalEarned := totalEarned + 10.0 };
-          if (ref.reelBonusPaid) { totalEarned := totalEarned + 20.0 };
-          if (ref.followerBonusPaid) { totalEarned := totalEarned + 50.0 };
+          if (ref.signupBonusPaid) { totalEarned := totalEarned + referralSignupBonus };
+          if (ref.reelBonusPaid) { totalEarned := totalEarned + referralReelBonus };
+          if (ref.followerBonusPaid) { totalEarned := totalEarned + referralFollowerBonus };
         });
         { referralCode; totalReferrals = myReferrals.size(); totalEarned };
       };
@@ -1043,6 +1174,7 @@ actor {
   public shared ({ caller }) func adminSetAdmin(userId : Principal) : async () {
     requireAdmin(caller);
     admins.add(userId);
+    logAudit(caller, "SET_ADMIN", ?userId, null, "Granted admin to " # userId.toText());
   };
 
   public query ({ caller }) func adminGetUsers(page : Nat, pageSize : Nat) : async [AdminUserInfo] {
@@ -1051,6 +1183,13 @@ actor {
     let start = page * pageSize;
     if (start >= allUsers.size()) { return [] };
     allUsers.sliceToArray(start, Nat.min(start + pageSize, allUsers.size())).map(func((uid, profile)) {
+      buildAdminUserInfo(uid, profile);
+    });
+  };
+
+  public query ({ caller }) func adminGetAllUsers() : async [AdminUserInfo] {
+    requireAdmin(caller);
+    users.entries().toArray().map(func((uid, profile)) {
       buildAdminUserInfo(uid, profile);
     });
   };
@@ -1067,16 +1206,18 @@ actor {
     requireAdmin(caller);
     if (not users.containsKey(userId)) { Runtime.trap("User does not exist") };
     suspendedUsers.add(userId);
+    logAudit(caller, "SUSPEND_USER", ?userId, null, "Suspended user " # userId.toText());
   };
 
   public shared ({ caller }) func adminUnsuspendUser(userId : Principal) : async () {
     requireAdmin(caller);
     suspendedUsers.remove(userId);
+    logAudit(caller, "UNSUSPEND_USER", ?userId, null, "Unsuspended user " # userId.toText());
   };
 
   public query ({ caller }) func adminGetPosts(page : Nat, pageSize : Nat) : async [AdminPostInfo] {
     requireAdmin(caller);
-    let allPosts = posts.values().toArray().sort(Post.compareNewest);
+    let allPosts = posts.values().toArray().filter(func(p) { not deletedPosts.contains(p.id) }).sort(Post.compareNewest);
     let start = page * pageSize;
     if (start >= allPosts.size()) { return [] };
     allPosts.sliceToArray(start, Nat.min(start + pageSize, allPosts.size())).map(buildAdminPostInfo);
@@ -1084,19 +1225,20 @@ actor {
 
   public shared ({ caller }) func adminRemovePost(postId : PostId) : async () {
     requireAdmin(caller);
-    if (not posts.containsKey(postId)) { Runtime.trap("Post does not exist") };
-    posts.remove(postId);
-    likes.remove(postId);
-    comments.remove(postId);
-    flaggedPosts.remove(postId);
-    flagCounts.remove(postId);
+    switch (posts.get(postId)) {
+      case (null) { Runtime.trap("Post does not exist") };
+      case (?post) {
+        deletedPosts.add(postId);
+        logAudit(caller, "REMOVE_POST", ?post.authorId, ?postId, "Removed post " # postId.toText());
+      };
+    };
   };
 
   public query ({ caller }) func adminGetFlaggedPosts() : async [AdminPostInfo] {
     requireAdmin(caller);
     flaggedPosts.values().toArray().filterMap(func(postId) : ?AdminPostInfo {
       switch (posts.get(postId)) {
-        case (?post) ?buildAdminPostInfo(post);
+        case (?post) if (not deletedPosts.contains(postId)) ?buildAdminPostInfo(post) else null;
         case null null;
       };
     });
@@ -1109,9 +1251,9 @@ actor {
     let earningsMap = Map.empty<UserId, Float>();
     allReferrals.forEach(func(ref) {
       var earned = 0.0;
-      if (ref.signupBonusPaid) { earned := earned + 10.0 };
-      if (ref.reelBonusPaid) { earned := earned + 20.0 };
-      if (ref.followerBonusPaid) { earned := earned + 50.0 };
+      if (ref.signupBonusPaid) { earned := earned + referralSignupBonus };
+      if (ref.reelBonusPaid) { earned := earned + referralReelBonus };
+      if (ref.followerBonusPaid) { earned := earned + referralFollowerBonus };
       totalPaid := totalPaid + earned;
       let current = switch (earningsMap.get(ref.referrerId)) {
         case (null) 0.0;
@@ -1141,7 +1283,7 @@ actor {
     let now = Time.now();
     let oneWeekNs : Int = 7 * 24 * 60 * 60 * 1_000_000_000;
     let weekAgo = now - oneWeekNs;
-    let allPostsArr = posts.values().toArray();
+    let allPostsArr = posts.values().toArray().filter(func(p) { not deletedPosts.contains(p.id) });
     let approvedWithdrawals = walletTransactions.values().toArray()
       .filter(func(tx) { tx.txType == #withdrawal and tx.status == #approved });
     {
@@ -1167,6 +1309,12 @@ actor {
       case (?req) {
         if (req.status != #pending) { Runtime.trap("Withdrawal is not pending") };
         withdrawalRequests.add(txId, { req with status = #approved });
+        // Also update the wallet transaction status
+        switch (walletTransactions.get(txId)) {
+          case (?tx) { walletTransactions.add(txId, { tx with status = #approved }) };
+          case null {};
+        };
+        logAudit(caller, "APPROVE_WITHDRAWAL", ?req.userId, null, "Approved withdrawal " # txId.toText() # " for \u{20B9}" # req.amount.toText());
       };
     };
   };
@@ -1178,9 +1326,70 @@ actor {
       case (?req) {
         if (req.status != #pending) { Runtime.trap("Withdrawal is not pending") };
         withdrawalRequests.add(txId, { req with status = #rejected; rejectionReason = ?reason });
-        // Refund balance
+        // Refund balance back to user
         walletBalances.add(req.userId, getBalance(req.userId) + req.amount);
+        // Also update wallet transaction status
+        switch (walletTransactions.get(txId)) {
+          case (?tx) { walletTransactions.add(txId, { tx with status = #rejected }) };
+          case null {};
+        };
+        logAudit(caller, "REJECT_WITHDRAWAL", ?req.userId, null, "Rejected withdrawal " # txId.toText() # ". Reason: " # reason);
       };
     };
+  };
+
+  // ── Admin: Reward Config ──────────────────────────────────────────────────────
+
+  public shared ({ caller }) func adminSetRewards(signupBonus : Float, reelBonus : Float, followerBonus : Float) : async Bool {
+    requireAdmin(caller);
+    referralSignupBonus := signupBonus;
+    referralReelBonus := reelBonus;
+    referralFollowerBonus := followerBonus;
+    logAudit(
+      caller,
+      "SET_REWARDS",
+      null,
+      null,
+      "Signup=" # signupBonus.toText() # " Reel=" # reelBonus.toText() # " Follower=" # followerBonus.toText(),
+    );
+    true;
+  };
+
+  public query ({ caller }) func adminGetRewards() : async { signupBonus : Float; reelBonus : Float; followerBonus : Float } {
+    requireAdmin(caller);
+    { signupBonus = referralSignupBonus; reelBonus = referralReelBonus; followerBonus = referralFollowerBonus };
+  };
+
+  // ── Admin: Fraud Scores ───────────────────────────────────────────────────────
+
+  public query ({ caller }) func adminGetFraudScores() : async [FraudScoreInfo] {
+    requireAdmin(caller);
+    users.entries().toArray().filterMap(func((uid, profile)) : ?FraudScoreInfo {
+      let (score, flags) = computeFraudScore(uid);
+      if (score > 0) {
+        ?{
+          userId = uid;
+          username = profile.username;
+          riskScore = score;
+          flags;
+        };
+      } else {
+        null;
+      };
+    }).sort(func(a, b) {
+      Nat.compare(b.riskScore, a.riskScore);
+    });
+  };
+
+  // ── Admin: Audit Log ──────────────────────────────────────────────────────────
+
+  public query ({ caller }) func adminGetAuditLog(page : Nat, pageSize : Nat) : async [AdminAuditEntry] {
+    requireAdmin(caller);
+    // Return newest first
+    let reversed = auditLog.reverse();
+    let allEntries = reversed.toArray();
+    let start = page * pageSize;
+    if (start >= allEntries.size()) { return [] };
+    allEntries.sliceToArray(start, Nat.min(start + pageSize, allEntries.size()));
   };
 };

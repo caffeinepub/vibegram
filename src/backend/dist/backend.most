@@ -1,4 +1,14 @@
 // Version: 3.0.0
+type AdminAuditEntry__445134032 =
+  {
+    action : Text;
+    adminId : UserId__313180070;
+    details : Text;
+    id : Nat;
+    targetId : ?UserId__313180070;
+    targetPostId : ?PostId__254971760;
+    timestamp : Int
+  };
 type Comment__473346131 =
   {
     authorId : UserId__313180070;
@@ -27,6 +37,7 @@ type Map__297112838<K, V> =
   {var root : Node__46230540<K, V>; var size : Nat__490723111};
 type Map__605269027<K, V> = Map__158565046<K, V>;
 type MediaType__597750801 = {#photo; #video};
+type MediaType__926967568 = {#photo; #video};
 type MessageId__147617357 = Nat;
 type Message__19119041 =
   {
@@ -63,50 +74,19 @@ type Notification__879889657 =
     recipientId : UserId__313180070;
     type_ : NotificationType__754463539
   };
-type OldComment__646683993 =
-  {
-    authorId : OldUserId__580276348;
-    createdAt : OldTime__872344013;
-    postId : OldPostId__941582749;
-    text : Text
-  };
-type OldMediaType__16242099 = {#photo; #video};
-type OldMessageId__915852949 = Nat;
-type OldMessage__897832057 =
-  {
-    createdAt : OldTime__872344013;
-    id : OldMessageId__915852949;
-    receiverId : OldUserId__580276348;
-    senderId : OldUserId__580276348;
-    text : Text
-  };
-type OldNotificationId__716309509 = Nat;
-type OldNotificationType__89303409 = {#comment; #follow; #like};
-type OldNotification__868316919 =
-  {
-    actorId : OldUserId__580276348;
-    createdAt : OldTime__872344013;
-    id : OldNotificationId__716309509;
-    postId : ?OldPostId__941582749;
-    read : Bool;
-    recipientId : OldUserId__580276348;
-    type_ : OldNotificationType__89303409
-  };
-type OldPostId__941582749 = Nat;
-type OldPost__784581407 =
-  {
-    authorId : OldUserId__580276348;
-    caption : Text;
-    createdAt : OldTime__872344013;
-    id : OldPostId__941582749;
-    media : Blob;
-    mediaType : OldMediaType__16242099
-  };
-type OldTime__872344013 = Int;
-type OldUserId__580276348 = Principal;
-type OldUserProfile__416069324 =
-  {bio : Text; displayName : Text; profilePhoto : ?Blob; username : Text};
+type PostId__1064641814 = Nat;
 type PostId__254971760 = Nat;
+type Post__1060967480 =
+  {
+    authorId : UserId__2049225;
+    caption : Text;
+    createdAt : Int;
+    id : PostId__1064641814;
+    location : ?Text;
+    mediaType : MediaType__926967568;
+    mediaUrl : Text;
+    tags : [Text]
+  };
 type Post__955439577 =
   {
     authorId : UserId__313180070;
@@ -128,6 +108,7 @@ type ReferralRecord__262724806 =
     signupBonusPaid : Bool
   };
 type TxId__981661235 = Nat;
+type UserId__2049225 = Principal;
 type UserId__313180070 = Principal;
 type UserProfile__491224006 =
   {
@@ -168,6 +149,11 @@ type WithdrawalRequest__57663818 =
   };
 type WithdrawalStatus__44068968 = {#approved; #pending; #rejected};
 actor ({
+  stable _fraudScores :
+    {
+      var root : Node__46230540<UserId__313180070, Nat>;
+      var size : Nat__490723111
+    };
   stable accessControlState :
     {
       var adminAssigned : Bool;
@@ -175,73 +161,20 @@ actor ({
     };
   stable admins :
     {var root : Node__92254746<UserId__313180070>; var size : Nat__490723111};
-  in comments :
-    Map__605269027<OldPostId__941582749,
-                    List__415060402<OldComment__646683993>>;
-  stable flagCounts :
+  stable auditLog :
     {
-      var root : Node__46230540<PostId__254971760, Nat>;
-      var size : Nat__490723111
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?AdminAuditEntry__445134032]];
+      var elementIndex : Nat__490723111
     };
-  stable flaggedPosts :
-    {var root : Node__92254746<PostId__254971760>; var size : Nat__490723111};
-  in follows :
-    Map__605269027<OldUserId__580276348,
-                    List__415060402<OldUserId__580276348>>;
-  in likes :
-    Map__605269027<OldPostId__941582749,
-                    List__415060402<OldUserId__580276348>>;
-  in messages :
-    Map__605269027<OldMessageId__915852949, OldMessage__897832057>;
-  in var nextMessageId : Nat;
-  in var nextNotificationId : Nat;
-  in var nextPostId : Nat;
-  stable var nextTxId : Nat;
-  in notifications :
-    Map__605269027<OldNotificationId__716309509, OldNotification__868316919>;
-  in posts : Map__605269027<OldPostId__941582749, OldPost__784581407>;
-  stable referrals :
-    {
-      var root : Node__46230540<UserId__313180070, ReferralRecord__262724806>;
-      var size : Nat__490723111
-    };
-  stable suspendedUsers :
-    {var root : Node__92254746<UserId__313180070>; var size : Nat__490723111};
-  stable userJoinTimes :
-    {
-      var root : Node__46230540<UserId__313180070, Int>;
-      var size : Nat__490723111
-    };
-  in users : Map__605269027<OldUserId__580276348, OldUserProfile__416069324>;
-  stable walletBalances :
-    {
-      var root : Node__46230540<UserId__313180070, Float>;
-      var size : Nat__490723111
-    };
-  stable walletTransactions :
-    {
-      var root : Node__46230540<TxId__981661235, WalletTransaction__95917618>;
-      var size : Nat__490723111
-    };
-  stable withdrawalRequests :
-    {
-      var root : Node__46230540<TxId__981661235, WithdrawalRequest__57663818>;
-      var size : Nat__490723111
-    }
-}, {
-  stable accessControlState :
-    {
-      var adminAssigned : Bool;
-      userRoles : Map__605269027<Principal, UserRole__1054455867>
-    };
-  stable admins :
-    {var root : Node__92254746<UserId__313180070>; var size : Nat__490723111};
   stable comments :
     {
       var root :
         Node__46230540<PostId__254971760, List__415060402<Comment__473346131>>;
       var size : Nat__490723111
     };
+  stable deletedPosts :
+    {var root : Node__92254746<PostId__254971760>; var size : Nat__490723111};
   stable flagCounts :
     {
       var root : Node__46230540<PostId__254971760, Nat>;
@@ -266,6 +199,110 @@ actor ({
       var root : Node__46230540<MessageId__147617357, Message__19119041>;
       var size : Nat__490723111
     };
+  stable var nextAuditId : Nat;
+  stable var nextMessageId : Nat;
+  stable var nextNotificationId : Nat;
+  stable var nextPostId : Nat;
+  stable var nextTxId : Nat;
+  stable notifications :
+    {
+      var root :
+        Node__46230540<NotificationId__65415016, Notification__879889657>;
+      var size : Nat__490723111
+    };
+  in posts : Map__605269027<PostId__1064641814, Post__1060967480>;
+  stable var referralFollowerBonus : Float;
+  stable var referralReelBonus : Float;
+  stable var referralSignupBonus : Float;
+  stable referralTimestamps :
+    {
+      var root : Node__46230540<UserId__313180070, List__415060402<Int>>;
+      var size : Nat__490723111
+    };
+  stable referrals :
+    {
+      var root : Node__46230540<UserId__313180070, ReferralRecord__262724806>;
+      var size : Nat__490723111
+    };
+  stable suspendedUsers :
+    {var root : Node__92254746<UserId__313180070>; var size : Nat__490723111};
+  stable userJoinTimes :
+    {
+      var root : Node__46230540<UserId__313180070, Int>;
+      var size : Nat__490723111
+    };
+  stable users :
+    {
+      var root : Node__46230540<UserId__313180070, UserProfile__491224006>;
+      var size : Nat__490723111
+    };
+  stable walletBalances :
+    {
+      var root : Node__46230540<UserId__313180070, Float>;
+      var size : Nat__490723111
+    };
+  stable walletTransactions :
+    {
+      var root : Node__46230540<TxId__981661235, WalletTransaction__95917618>;
+      var size : Nat__490723111
+    };
+  stable withdrawalRequests :
+    {
+      var root : Node__46230540<TxId__981661235, WithdrawalRequest__57663818>;
+      var size : Nat__490723111
+    }
+}, {
+  stable _fraudScores :
+    {
+      var root : Node__46230540<UserId__313180070, Nat>;
+      var size : Nat__490723111
+    };
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  stable admins :
+    {var root : Node__92254746<UserId__313180070>; var size : Nat__490723111};
+  stable auditLog :
+    {
+      var blockIndex : Nat__490723111;
+      var blocks : [var [var ?AdminAuditEntry__445134032]];
+      var elementIndex : Nat__490723111
+    };
+  stable comments :
+    {
+      var root :
+        Node__46230540<PostId__254971760, List__415060402<Comment__473346131>>;
+      var size : Nat__490723111
+    };
+  stable deletedPosts :
+    {var root : Node__92254746<PostId__254971760>; var size : Nat__490723111};
+  stable flagCounts :
+    {
+      var root : Node__46230540<PostId__254971760, Nat>;
+      var size : Nat__490723111
+    };
+  stable flaggedPosts :
+    {var root : Node__92254746<PostId__254971760>; var size : Nat__490723111};
+  stable follows :
+    {
+      var root :
+        Node__46230540<UserId__313180070, List__415060402<UserId__313180070>>;
+      var size : Nat__490723111
+    };
+  stable likes :
+    {
+      var root :
+        Node__46230540<PostId__254971760, List__415060402<UserId__313180070>>;
+      var size : Nat__490723111
+    };
+  stable messages :
+    {
+      var root : Node__46230540<MessageId__147617357, Message__19119041>;
+      var size : Nat__490723111
+    };
+  stable var nextAuditId : Nat;
   stable var nextMessageId : Nat;
   stable var nextNotificationId : Nat;
   stable var nextPostId : Nat;
@@ -279,6 +316,14 @@ actor ({
   stable posts :
     {
       var root : Node__46230540<PostId__254971760, Post__955439577>;
+      var size : Nat__490723111
+    };
+  stable var referralFollowerBonus : Float;
+  stable var referralReelBonus : Float;
+  stable var referralSignupBonus : Float;
+  stable referralTimestamps :
+    {
+      var root : Node__46230540<UserId__313180070, List__415060402<Int>>;
       var size : Nat__490723111
     };
   stable referrals :

@@ -9,6 +9,17 @@
 import { IDL } from '@icp-sdk/core/candid';
 
 export const TxId = IDL.Nat;
+export const UserId = IDL.Principal;
+export const AdminUserInfo = IDL.Record({
+  'postCount' : IDL.Nat,
+  'username' : IDL.Text,
+  'displayName' : IDL.Text,
+  'userId' : UserId,
+  'joinedAt' : IDL.Int,
+  'isActive' : IDL.Bool,
+  'isSuspended' : IDL.Bool,
+  'followerCount' : IDL.Nat,
+});
 export const AdminAnalytics = IDL.Record({
   'pendingWithdrawals' : IDL.Nat,
   'totalUsers' : IDL.Nat,
@@ -18,7 +29,15 @@ export const AdminAnalytics = IDL.Record({
   'totalReels' : IDL.Nat,
 });
 export const PostId = IDL.Nat;
-export const UserId = IDL.Principal;
+export const AdminAuditEntry = IDL.Record({
+  'id' : IDL.Nat,
+  'action' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'details' : IDL.Text,
+  'targetPostId' : IDL.Opt(PostId),
+  'adminId' : UserId,
+  'targetId' : IDL.Opt(UserId),
+});
 export const MediaType = IDL.Variant({
   'video' : IDL.Null,
   'photo' : IDL.Null,
@@ -34,6 +53,12 @@ export const AdminPostInfo = IDL.Record({
   'isFlagged' : IDL.Bool,
   'flagCount' : IDL.Nat,
 });
+export const FraudScoreInfo = IDL.Record({
+  'flags' : IDL.Vec(IDL.Text),
+  'username' : IDL.Text,
+  'userId' : UserId,
+  'riskScore' : IDL.Nat,
+});
 export const AdminReferralStats = IDL.Record({
   'totalReferrals' : IDL.Nat,
   'totalPaid' : IDL.Float64,
@@ -41,16 +66,6 @@ export const AdminReferralStats = IDL.Record({
     IDL.Record({ 'username' : IDL.Text, 'earnings' : IDL.Float64 })
   ),
   'pendingPayout' : IDL.Float64,
-});
-export const AdminUserInfo = IDL.Record({
-  'postCount' : IDL.Nat,
-  'username' : IDL.Text,
-  'displayName' : IDL.Text,
-  'userId' : UserId,
-  'joinedAt' : IDL.Int,
-  'isActive' : IDL.Bool,
-  'isSuspended' : IDL.Bool,
-  'followerCount' : IDL.Nat,
 });
 export const WithdrawalStatus = IDL.Variant({
   'pending' : IDL.Null,
@@ -165,14 +180,32 @@ export const ReferralStats = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControl' : IDL.Func([], [], []),
   'adminApproveWithdrawal' : IDL.Func([TxId], [], []),
+  'adminGetAllUsers' : IDL.Func([], [IDL.Vec(AdminUserInfo)], ['query']),
   'adminGetAnalytics' : IDL.Func([], [AdminAnalytics], ['query']),
+  'adminGetAuditLog' : IDL.Func(
+      [IDL.Nat, IDL.Nat],
+      [IDL.Vec(AdminAuditEntry)],
+      ['query'],
+    ),
   'adminGetFlaggedPosts' : IDL.Func([], [IDL.Vec(AdminPostInfo)], ['query']),
+  'adminGetFraudScores' : IDL.Func([], [IDL.Vec(FraudScoreInfo)], ['query']),
   'adminGetPosts' : IDL.Func(
       [IDL.Nat, IDL.Nat],
       [IDL.Vec(AdminPostInfo)],
       ['query'],
     ),
   'adminGetReferralStats' : IDL.Func([], [AdminReferralStats], ['query']),
+  'adminGetRewards' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'followerBonus' : IDL.Float64,
+          'signupBonus' : IDL.Float64,
+          'reelBonus' : IDL.Float64,
+        }),
+      ],
+      ['query'],
+    ),
   'adminGetUsers' : IDL.Func(
       [IDL.Nat, IDL.Nat],
       [IDL.Vec(AdminUserInfo)],
@@ -191,6 +224,11 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'adminSetAdmin' : IDL.Func([IDL.Principal], [], []),
+  'adminSetRewards' : IDL.Func(
+      [IDL.Float64, IDL.Float64, IDL.Float64],
+      [IDL.Bool],
+      [],
+    ),
   'adminSuspendUser' : IDL.Func([IDL.Principal], [], []),
   'adminUnsuspendUser' : IDL.Func([IDL.Principal], [], []),
   'approveWithdrawal' : IDL.Func([TxId], [], []),
@@ -260,6 +298,17 @@ export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
   const TxId = IDL.Nat;
+  const UserId = IDL.Principal;
+  const AdminUserInfo = IDL.Record({
+    'postCount' : IDL.Nat,
+    'username' : IDL.Text,
+    'displayName' : IDL.Text,
+    'userId' : UserId,
+    'joinedAt' : IDL.Int,
+    'isActive' : IDL.Bool,
+    'isSuspended' : IDL.Bool,
+    'followerCount' : IDL.Nat,
+  });
   const AdminAnalytics = IDL.Record({
     'pendingWithdrawals' : IDL.Nat,
     'totalUsers' : IDL.Nat,
@@ -269,7 +318,15 @@ export const idlFactory = ({ IDL }) => {
     'totalReels' : IDL.Nat,
   });
   const PostId = IDL.Nat;
-  const UserId = IDL.Principal;
+  const AdminAuditEntry = IDL.Record({
+    'id' : IDL.Nat,
+    'action' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'details' : IDL.Text,
+    'targetPostId' : IDL.Opt(PostId),
+    'adminId' : UserId,
+    'targetId' : IDL.Opt(UserId),
+  });
   const MediaType = IDL.Variant({ 'video' : IDL.Null, 'photo' : IDL.Null });
   const AdminPostInfo = IDL.Record({
     'id' : PostId,
@@ -282,6 +339,12 @@ export const idlFactory = ({ IDL }) => {
     'isFlagged' : IDL.Bool,
     'flagCount' : IDL.Nat,
   });
+  const FraudScoreInfo = IDL.Record({
+    'flags' : IDL.Vec(IDL.Text),
+    'username' : IDL.Text,
+    'userId' : UserId,
+    'riskScore' : IDL.Nat,
+  });
   const AdminReferralStats = IDL.Record({
     'totalReferrals' : IDL.Nat,
     'totalPaid' : IDL.Float64,
@@ -289,16 +352,6 @@ export const idlFactory = ({ IDL }) => {
       IDL.Record({ 'username' : IDL.Text, 'earnings' : IDL.Float64 })
     ),
     'pendingPayout' : IDL.Float64,
-  });
-  const AdminUserInfo = IDL.Record({
-    'postCount' : IDL.Nat,
-    'username' : IDL.Text,
-    'displayName' : IDL.Text,
-    'userId' : UserId,
-    'joinedAt' : IDL.Int,
-    'isActive' : IDL.Bool,
-    'isSuspended' : IDL.Bool,
-    'followerCount' : IDL.Nat,
   });
   const WithdrawalStatus = IDL.Variant({
     'pending' : IDL.Null,
@@ -413,14 +466,32 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControl' : IDL.Func([], [], []),
     'adminApproveWithdrawal' : IDL.Func([TxId], [], []),
+    'adminGetAllUsers' : IDL.Func([], [IDL.Vec(AdminUserInfo)], ['query']),
     'adminGetAnalytics' : IDL.Func([], [AdminAnalytics], ['query']),
+    'adminGetAuditLog' : IDL.Func(
+        [IDL.Nat, IDL.Nat],
+        [IDL.Vec(AdminAuditEntry)],
+        ['query'],
+      ),
     'adminGetFlaggedPosts' : IDL.Func([], [IDL.Vec(AdminPostInfo)], ['query']),
+    'adminGetFraudScores' : IDL.Func([], [IDL.Vec(FraudScoreInfo)], ['query']),
     'adminGetPosts' : IDL.Func(
         [IDL.Nat, IDL.Nat],
         [IDL.Vec(AdminPostInfo)],
         ['query'],
       ),
     'adminGetReferralStats' : IDL.Func([], [AdminReferralStats], ['query']),
+    'adminGetRewards' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'followerBonus' : IDL.Float64,
+            'signupBonus' : IDL.Float64,
+            'reelBonus' : IDL.Float64,
+          }),
+        ],
+        ['query'],
+      ),
     'adminGetUsers' : IDL.Func(
         [IDL.Nat, IDL.Nat],
         [IDL.Vec(AdminUserInfo)],
@@ -439,6 +510,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'adminSetAdmin' : IDL.Func([IDL.Principal], [], []),
+    'adminSetRewards' : IDL.Func(
+        [IDL.Float64, IDL.Float64, IDL.Float64],
+        [IDL.Bool],
+        [],
+      ),
     'adminSuspendUser' : IDL.Func([IDL.Principal], [], []),
     'adminUnsuspendUser' : IDL.Func([IDL.Principal], [], []),
     'approveWithdrawal' : IDL.Func([TxId], [], []),

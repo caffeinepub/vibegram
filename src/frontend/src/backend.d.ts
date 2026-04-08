@@ -7,6 +7,15 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface AdminAuditEntry {
+    id: bigint;
+    action: string;
+    timestamp: bigint;
+    details: string;
+    targetPostId?: PostId;
+    adminId: UserId;
+    targetId?: UserId;
+}
 export type WithdrawalMethod = {
     __kind__: "upi";
     upi: string;
@@ -50,6 +59,12 @@ export interface ReferralStats {
     referralCode: string;
     totalReferrals: bigint;
     totalEarned: number;
+}
+export interface FraudScoreInfo {
+    flags: Array<string>;
+    username: string;
+    userId: UserId;
+    riskScore: bigint;
 }
 export interface AdminAnalytics {
     pendingWithdrawals: bigint;
@@ -166,16 +181,25 @@ export enum WithdrawalStatus {
 }
 export interface backendInterface {
     adminApproveWithdrawal(txId: TxId): Promise<void>;
+    adminGetAllUsers(): Promise<Array<AdminUserInfo>>;
     adminGetAnalytics(): Promise<AdminAnalytics>;
+    adminGetAuditLog(page: bigint, pageSize: bigint): Promise<Array<AdminAuditEntry>>;
     adminGetFlaggedPosts(): Promise<Array<AdminPostInfo>>;
+    adminGetFraudScores(): Promise<Array<FraudScoreInfo>>;
     adminGetPosts(page: bigint, pageSize: bigint): Promise<Array<AdminPostInfo>>;
     adminGetReferralStats(): Promise<AdminReferralStats>;
+    adminGetRewards(): Promise<{
+        followerBonus: number;
+        signupBonus: number;
+        reelBonus: number;
+    }>;
     adminGetUsers(page: bigint, pageSize: bigint): Promise<Array<AdminUserInfo>>;
     adminGetWithdrawalRequests(): Promise<Array<WithdrawalRequest>>;
     adminRejectWithdrawal(txId: TxId, reason: string): Promise<void>;
     adminRemovePost(postId: PostId): Promise<void>;
     adminSearchUsers(searchQuery: string): Promise<Array<AdminUserInfo>>;
     adminSetAdmin(userId: Principal): Promise<void>;
+    adminSetRewards(signupBonus: number, reelBonus: number, followerBonus: number): Promise<boolean>;
     adminSuspendUser(userId: Principal): Promise<void>;
     adminUnsuspendUser(userId: Principal): Promise<void>;
     approveWithdrawal(txId: TxId): Promise<void>;

@@ -89,6 +89,15 @@
     --sidebar-border: 0.28 0.015 270;
     --sidebar-ring: 0.62 0.22 295;
 
+    /* Admin dashboard tokens */
+    --admin-bg-elevated: 0.1 0.007 268;
+    --admin-status-pending: 0.72 0.22 50;
+    --admin-status-approved: 0.65 0.22 130;
+    --admin-status-rejected: 0.6 0.24 25;
+    --admin-status-flagged: 0.65 0.25 30;
+    --admin-header: 0.09 0.006 268;
+    --admin-table-alt-row: 0.08 0.005 269;
+
     /* Custom Butki tokens */
     --vibe-purple: 0.65 0.24 295;
     --vibe-pink: 0.68 0.26 350;
@@ -342,5 +351,82 @@
     100% {
       transform: translateX(-100%);
     }
+  }
+
+  /* Admin dashboard utilities */
+  .admin-card {
+    @apply bg-card border border-border rounded-lg p-4 backdrop-blur-sm;
+  }
+
+  .admin-header {
+    @apply bg-card border-b border-border backdrop-blur-sm;
+  }
+
+  .admin-tab-active {
+    @apply text-primary border-b-2 border-primary;
+  }
+
+  .admin-status {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .admin-status-pending {
+    @apply bg-orange-500/10 text-orange-300;
+  }
+
+  .admin-status-approved {
+    @apply bg-green-500/10 text-green-300;
+  }
+
+  .admin-status-rejected {
+    @apply bg-red-500/10 text-red-300;
+  }
+
+  .admin-status-flagged {
+    @apply bg-red-500/10 text-orange-300;
+  }
+
+  .admin-metric {
+    @apply flex flex-col gap-2;
+  }
+
+  .admin-metric-value {
+    @apply text-3xl font-bold font-display text-foreground;
+  }
+
+  .admin-metric-label {
+    @apply text-sm text-muted-foreground font-body;
+  }
+
+  .admin-table-header {
+    @apply bg-muted/30 border-b border-border px-4 py-3 text-sm font-semibold text-foreground;
+  }
+
+  .admin-table-row {
+    @apply border-b border-border px-4 py-3 text-sm transition-colors hover:bg-muted/20;
+  }
+
+  .admin-table-row-alt {
+    @apply bg-muted/10;
+  }
+
+  .admin-input {
+    @apply bg-input border border-border rounded-lg px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50;
+  }
+
+  .admin-button {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+  }
+
+  .admin-button-primary {
+    @apply admin-button bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95;
+  }
+
+  .admin-button-secondary {
+    @apply admin-button bg-muted text-foreground hover:bg-muted/80;
+  }
+
+  .admin-button-destructive {
+    @apply admin-button bg-destructive text-destructive-foreground hover:bg-destructive/90;
   }
 }

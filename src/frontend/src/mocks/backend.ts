@@ -68,6 +68,41 @@ export const mockBackend: backendInterface = {
       followerCount: BigInt(120),
     },
   ],
+  adminGetAllUsers: async () => [
+    {
+      postCount: BigInt(12),
+      username: "spandan",
+      displayName: "Spandan Dev",
+      userId: mockPrincipal,
+      joinedAt: BigInt(Date.now() - 86400000 * 30),
+      isActive: true,
+      isSuspended: false,
+      followerCount: BigInt(340),
+    },
+  ],
+  adminGetAuditLog: async () => [
+    {
+      id: BigInt(1),
+      action: "REMOVE_POST",
+      timestamp: BigInt(Date.now() - 3600000),
+      details: "Removed post 42",
+      adminId: mockPrincipal,
+    },
+  ],
+  adminGetFraudScores: async () => [
+    {
+      userId: mockPrincipal,
+      username: "suspicious_user",
+      riskScore: BigInt(75),
+      flags: ["same_ip_referral", "rapid_signups"],
+    },
+  ],
+  adminGetRewards: async () => ({
+    signupBonus: 10,
+    reelBonus: 20,
+    followerBonus: 50,
+  }),
+  adminSetRewards: async () => true,
   adminGetWithdrawalRequests: async () => [
     {
       id: BigInt(1),

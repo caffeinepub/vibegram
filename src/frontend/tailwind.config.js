@@ -82,6 +82,13 @@ export default {
           pink: "oklch(var(--vibe-pink) / <alpha-value>)",
           blue: "oklch(var(--vibe-blue) / <alpha-value>)",
         },
+        // Admin status colors
+        status: {
+          pending: "oklch(var(--admin-status-pending))",
+          approved: "oklch(var(--admin-status-approved))",
+          rejected: "oklch(var(--admin-status-rejected))",
+          flagged: "oklch(var(--admin-status-flagged))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -118,6 +125,14 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.8" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -125,6 +140,8 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-up": "slide-up 0.4s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
+        "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "shimmer": "shimmer 2s linear infinite",
       },
     },
   },
